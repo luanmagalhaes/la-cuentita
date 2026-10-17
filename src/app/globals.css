@@ -1,0 +1,311 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #1d2060;
+  --color-navy: #2b2f7e;
+  --color-royal: #4c6fa4;
+  --color-teal: #05a2a2;
+  --color-aqua: #7fd4d4;
+  --color-sky: #a8d8ef;
+  --color-gold: #f2c14e;
+  --color-gold-deep: #d99b2b;
+  --color-flame: #e8483c;
+  --color-flame-soft: #f4877d;
+  --color-rose: #e58bb4;
+  --color-freeze: #9fd9ee;
+  --color-flipthree: #efe157;
+  --color-second: #e2564f;
+  --color-cream: #f6efdd;
+  --color-paper: #fffdf6;
+
+  --font-display: var(--font-display-face), "Arial Black", sans-serif;
+  --font-body: var(--font-body-face), system-ui, sans-serif;
+
+  --ease-snap: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-swing: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+:root {
+  color-scheme: light;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html,
+body {
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+[role="button"] {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+@utility stage-foil {
+  background-image:
+    radial-gradient(120% 70% at 6% 0%, var(--color-aqua) 0%, transparent 55%),
+    radial-gradient(90% 60% at 94% 8%, var(--color-rose) 0%, transparent 52%),
+    radial-gradient(90% 70% at 50% 100%, var(--color-gold) 0%, transparent 55%),
+    linear-gradient(160deg, var(--color-sky) 0%, var(--color-cream) 55%, var(--color-aqua) 100%);
+}
+
+@utility stage-cream {
+  background-image:
+    radial-gradient(110% 70% at 10% 0%, var(--color-paper) 0%, transparent 60%),
+    linear-gradient(170deg, var(--color-cream) 0%, var(--color-sky) 130%);
+}
+
+@utility foil-text {
+  background-image: linear-gradient(
+    100deg,
+    #1d2060 0%,
+    #2b6fd0 14%,
+    #05a2a2 28%,
+    #7fd4d4 40%,
+    #a8d8ef 52%,
+    #6aa8f0 64%,
+    #2b2f7e 78%,
+    #4c6fa4 90%,
+    #1d2060 100%
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+@utility foil-band {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-teal) 0%,
+    var(--color-aqua) 22%,
+    var(--color-sky) 40%,
+    var(--color-rose) 62%,
+    var(--color-gold) 84%,
+    var(--color-aqua) 100%
+  );
+  background-size: 220% 100%;
+}
+
+@utility display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.005em;
+}
+
+@utility deco-card {
+  box-shadow: 0 8px 0 var(--color-ink);
+}
+
+@utility gpu {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+@keyframes foil-slide {
+  from { background-position: 0% 50%; }
+  to { background-position: 200% 50%; }
+}
+
+@keyframes foil-shift {
+  from { background-position: 0% 50%; }
+  to { background-position: 300% 50%; }
+}
+
+@keyframes card-pop {
+  0% { transform: scale(0.85) rotate(-3deg); opacity: 0; }
+  60% { transform: scale(1.04) rotate(1deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes rise-in {
+  from { transform: translate3d(0, 22px, 0); opacity: 0; }
+  to { transform: translate3d(0, 0, 0); opacity: 1; }
+}
+
+@keyframes score-bump {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+
+@keyframes crown-drop {
+  0% { transform: translate3d(0, -60px, 0) scale(0.6) rotate(-12deg); opacity: 0; }
+  65% { transform: translate3d(0, 6px, 0) scale(1.08) rotate(3deg); opacity: 1; }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes halo-pulse {
+  0% { transform: scale(0.9); opacity: 0.55; }
+  70% { transform: scale(1.35); opacity: 0; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+@utility animate-foil-slide {
+  animation: foil-slide 7s linear infinite;
+  will-change: background-position;
+}
+
+@utility animate-foil-shift {
+  animation: foil-shift 6s linear infinite;
+  will-change: background-position;
+}
+
+@utility animate-card-pop {
+  animation: card-pop 420ms var(--ease-swing) both;
+  will-change: transform, opacity;
+}
+
+@utility animate-rise-in {
+  animation: rise-in 420ms var(--ease-snap) both;
+  will-change: transform, opacity;
+}
+
+@utility animate-score-bump {
+  animation: score-bump 440ms var(--ease-swing) both;
+  will-change: transform;
+}
+
+@utility animate-crown-drop {
+  animation: crown-drop 720ms var(--ease-swing) both;
+  will-change: transform, opacity;
+}
+
+@utility animate-halo-pulse {
+  animation: halo-pulse 2200ms ease-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes card-spin-in {
+  0% { transform: perspective(900px) rotateY(-540deg) scale(0.25); opacity: 0; }
+  55% { transform: perspective(900px) rotateY(0deg) scale(1.18); opacity: 1; }
+  75% { transform: perspective(900px) rotateY(0deg) scale(0.98); opacity: 1; }
+  100% { transform: perspective(900px) rotateY(0deg) scale(1.04); opacity: 0; }
+}
+
+@keyframes shockwave {
+  0% { transform: scale(0.4); opacity: 0.65; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+@keyframes stamp-slam {
+  0% { transform: scale(3.2) rotate(-24deg); opacity: 0; }
+  38% { transform: scale(1) rotate(-11deg); opacity: 1; }
+  48% { transform: scale(1.1) rotate(-11deg); }
+  58% { transform: scale(1) rotate(-11deg); }
+  100% { transform: scale(1) rotate(-11deg); opacity: 0; }
+}
+
+@keyframes shake-hard {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  12% { transform: translate3d(-12px, 4px, 0) rotate(-1.4deg); }
+  26% { transform: translate3d(11px, -4px, 0) rotate(1.4deg); }
+  40% { transform: translate3d(-8px, 3px, 0) rotate(-1deg); }
+  54% { transform: translate3d(7px, -2px, 0) rotate(0.8deg); }
+  70% { transform: translate3d(-4px, 1px, 0) rotate(-0.4deg); }
+}
+
+@keyframes drop-away {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate3d(0, 120vh, 0) rotate(46deg); opacity: 0.2; }
+}
+
+@utility animate-card-spin-in {
+  animation: card-spin-in 1700ms var(--ease-snap) forwards;
+  will-change: transform, opacity;
+}
+
+@utility animate-shockwave {
+  animation: shockwave 1100ms ease-out forwards;
+  will-change: transform, opacity;
+}
+
+@utility animate-stamp-slam {
+  animation: stamp-slam 1700ms var(--ease-snap) forwards;
+  will-change: transform, opacity;
+}
+
+@utility animate-shake-hard {
+  animation: shake-hard 620ms ease-in-out 1;
+  will-change: transform;
+}
+
+@utility animate-drop-away {
+  animation: drop-away 1500ms cubic-bezier(0.55, 0, 0.9, 0.5) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes champion-zoom {
+  0% { transform: scale(0.18) rotate(-10deg); opacity: 0; }
+  45% { transform: scale(1.22) rotate(3deg); opacity: 1; }
+  68% { transform: scale(0.98) rotate(-1deg); }
+  100% { transform: scale(1.06) rotate(0deg); opacity: 1; }
+}
+
+@keyframes champion-breathe {
+  0%, 100% { transform: scale(1.06); }
+  50% { transform: scale(1.13); }
+}
+
+@keyframes ring-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@utility animate-champion-zoom {
+  animation:
+    champion-zoom 1100ms var(--ease-swing) both,
+    champion-breathe 3400ms ease-in-out 1100ms infinite;
+  will-change: transform, opacity;
+}
+
+@utility animate-ring-spin {
+  animation: ring-spin 9s linear infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes fan-out {
+  0% { transform: translate3d(0, 90%, 0) rotate(0deg) scale(0.7); opacity: 0; }
+  60% { transform: translate3d(0, 0, 0) rotate(calc(var(--turn) * 1.12)) scale(1.04); opacity: 1; }
+  100% { transform: translate3d(0, 0, 0) rotate(var(--turn)) scale(1); opacity: 1; }
+}
+
+@keyframes curtain-out {
+  from { transform: translate3d(0, 0, 0); opacity: 1; }
+  to { transform: translate3d(0, -100%, 0); opacity: 1; }
+}
+
+@utility animate-fan-out {
+  animation: fan-out 700ms var(--ease-swing) both;
+  will-change: transform, opacity;
+}
+
+@utility animate-curtain-out {
+  animation: curtain-out 620ms var(--ease-snap) forwards;
+  will-change: transform;
+}
