@@ -108,21 +108,35 @@ export const sound = {
       { hz: 880, at: 0.08, seconds: 0.16, wave: "triangle", gain: 0.1 },
     ]),
 
-  flipSeven: () =>
+  register: () =>
     play([
-      { hz: 523.25, at: 0, seconds: 0.11, wave: "square", gain: 0.09 },
-      { hz: 659.25, at: 0.1, seconds: 0.11, wave: "square", gain: 0.09 },
-      { hz: 783.99, at: 0.2, seconds: 0.11, wave: "square", gain: 0.1 },
-      { hz: 1046.5, at: 0.3, seconds: 0.14, wave: "square", gain: 0.11 },
-      { hz: 1318.5, at: 0.43, seconds: 0.36, wave: "triangle", gain: 0.13 },
-      { hz: 1567.98, at: 0.47, seconds: 0.34, wave: "sine", gain: 0.09 },
+      { hz: 1318.5, at: 0, seconds: 0.07, wave: "square", gain: 0.07 },
+      { hz: 1760, at: 0.06, seconds: 0.09, wave: "square", gain: 0.07 },
+      { hz: 2637, at: 0.16, seconds: 0.5, wave: "triangle", gain: 0.1 },
+      { hz: 3520, at: 0.18, seconds: 0.4, wave: "sine", gain: 0.05 },
     ]),
 
-  bust: () =>
+  sadTrombone: () =>
     play([
-      { hz: 392, at: 0, seconds: 0.26, wave: "sawtooth", gain: 0.11, slideTo: 261.63 },
-      { hz: 349.23, at: 0.26, seconds: 0.26, wave: "sawtooth", gain: 0.11, slideTo: 233.08 },
-      { hz: 311.13, at: 0.52, seconds: 0.5, wave: "sawtooth", gain: 0.12, slideTo: 130.81 },
+      { hz: 392, at: 0.55, seconds: 0.36, wave: "sawtooth", gain: 0.09 },
+      { hz: 370, at: 0.92, seconds: 0.36, wave: "sawtooth", gain: 0.09 },
+      { hz: 349.23, at: 1.29, seconds: 0.36, wave: "sawtooth", gain: 0.09 },
+      { hz: 329.63, at: 1.66, seconds: 0.95, wave: "sawtooth", gain: 0.1, slideTo: 311.13 },
+    ]),
+
+  lucky: () =>
+    play([
+      { hz: 783.99, at: 0, seconds: 0.1, wave: "triangle", gain: 0.1 },
+      { hz: 1046.5, at: 0.09, seconds: 0.1, wave: "triangle", gain: 0.1 },
+      { hz: 1318.5, at: 0.18, seconds: 0.3, wave: "triangle", gain: 0.11 },
+    ]),
+
+  bankrupt: () =>
+    play([
+      { hz: 523.25, at: 0, seconds: 0.18, wave: "square", gain: 0.08, slideTo: 392 },
+      { hz: 392, at: 0.2, seconds: 0.18, wave: "square", gain: 0.08, slideTo: 293.66 },
+      { hz: 293.66, at: 0.4, seconds: 0.22, wave: "square", gain: 0.09, slideTo: 196 },
+      { hz: 196, at: 0.64, seconds: 1.1, wave: "sawtooth", gain: 0.1, slideTo: 65.41 },
     ]),
 
   win: () =>
@@ -130,6 +144,9 @@ export const sound = {
       { hz: 523.25, at: 0, seconds: 0.12, wave: "triangle", gain: 0.12 },
       { hz: 659.25, at: 0.12, seconds: 0.12, wave: "triangle", gain: 0.12 },
       { hz: 783.99, at: 0.24, seconds: 0.12, wave: "triangle", gain: 0.12 },
-      { hz: 1046.5, at: 0.36, seconds: 0.42, wave: "triangle", gain: 0.14 },
+      { hz: 1046.5, at: 0.36, seconds: 0.3, wave: "triangle", gain: 0.14 },
+      { hz: 783.99, at: 0.66, seconds: 0.12, wave: "triangle", gain: 0.12 },
+      { hz: 1046.5, at: 0.78, seconds: 0.7, wave: "triangle", gain: 0.15 },
+      { hz: 1318.5, at: 0.8, seconds: 0.66, wave: "sine", gain: 0.08 },
     ]),
 };

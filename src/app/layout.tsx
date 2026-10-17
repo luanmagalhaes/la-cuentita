@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit, Righteous } from "next/font/google";
+import { Outfit, Risque } from "next/font/google";
 import { brand } from "@/data/copy";
 import "./globals.css";
 
-const righteous = Righteous({
+const risque = Risque({
   subsets: ["latin"],
   weight: "400",
   variable: "--font-display-face",
@@ -33,12 +33,12 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#05a2a2",
+  themeColor: "#f7a944",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" className={`${righteous.variable} ${outfit.variable} h-full`}>
+    <html lang="pt-BR" className={`${risque.variable} ${outfit.variable} h-full`}>
       <body className="min-h-full antialiased" suppressHydrationWarning>
         {children}
       </body>

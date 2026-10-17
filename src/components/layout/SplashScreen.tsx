@@ -1,19 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { Wordmark } from "@/components/ui/Wordmark";
 
-const holdMs = 1850;
+const holdMs = 2100;
 const fadeMs = 620;
 
-const fan = [
-  { value: 9, turn: -54, skin: "bg-teal text-paper" },
-  { value: 3, turn: -36, skin: "bg-rose text-ink" },
-  { value: 11, turn: -18, skin: "bg-royal text-paper" },
-  { value: 7, turn: 0, skin: "bg-gold text-ink" },
-  { value: 5, turn: 18, skin: "bg-flame text-paper" },
-  { value: 8, turn: 36, skin: "bg-aqua text-ink" },
-  { value: 12, turn: 54, skin: "bg-navy text-paper" },
+const lines = [
+  { label: "Croquetas", price: "20€" },
+  { label: "Pulpo a la gallega", price: "60€" },
+  { label: "Vino tinto ×3", price: "120€" },
+  { label: "Plato quemado", price: "−10€" },
 ];
 
 interface SplashScreenProps {
@@ -22,6 +19,7 @@ interface SplashScreenProps {
 
 export function SplashScreen({ onDone }: SplashScreenProps) {
   const [leaving, setLeaving] = useState(false);
+  const finish = useEffectEvent(onDone);
 
   useEffect(() => {
     const start = window.setTimeout(() => setLeaving(true), holdMs);
@@ -34,42 +32,48 @@ export function SplashScreen({ onDone }: SplashScreenProps) {
       return;
     }
 
-    const finish = window.setTimeout(onDone, fadeMs);
+    const done = window.setTimeout(() => finish(), fadeMs);
 
-    return () => window.clearTimeout(finish);
-  }, [leaving, onDone]);
+    return () => window.clearTimeout(done);
+  }, [leaving]);
 
   return (
     <div
-      className={`stage-foil fixed inset-0 z-[95] flex flex-col items-center justify-center gap-10 overflow-hidden px-8 ${
+      className={`stage-orange fixed inset-0 z-[95] flex flex-col items-center justify-center gap-8 overflow-hidden px-8 ${
         leaving ? "animate-curtain-out" : ""
       }`}
     >
-      <div className="relative flex h-44 w-full items-end justify-center">
-        <span className="animate-halo-pulse absolute bottom-6 h-28 w-28 rounded-full bg-paper/55" />
-
-        {fan.map((card, index) => (
-          <span
-            key={card.value}
-            className={`animate-fan-out absolute bottom-0 inline-flex h-[6.2rem] w-[4.3rem] origin-bottom flex-col items-center justify-center rounded-xl border-[3px] border-ink shadow-[0_4px_0_var(--color-ink)] ${card.skin}`}
-            style={{
-              ["--turn" as string]: `${card.turn}deg`,
-              animationDelay: `${index * 80}ms`,
-              zIndex: 10 - Math.abs(index - 3),
-            }}
+      <div className="relative h-56 w-60 overflow-hidden">
+        <div className="animate-receipt-unroll absolute inset-x-0 top-0 rounded-b-md bg-paper px-4 pb-4 pt-3 font-mono text-[0.72rem] text-ink shadow-[0_8px_0_rgba(42,27,18,0.35)]">
+          <p className="text-center font-bold tracking-[0.2em]">BAR MANOLO</p>
+          <p className="mb-2 text-center opacity-60">mesa 7 · 4 pessoas</p>
+          {lines.map((line, index) => (
+            <p
+              key={line.label}
+              className="animate-rise-in flex justify-between border-b border-dashed border-ink/25 py-1"
+              style={{ animationDelay: `${450 + index * 160}ms` }}
+            >
+              <span>{line.label}</span>
+              <span>{line.price}</span>
+            </p>
+          ))}
+          <p
+            className="animate-rise-in mt-2 flex justify-between text-sm font-bold"
+            style={{ animationDelay: "1150ms" }}
           >
-            <span className="display text-3xl leading-none">{card.value}</span>
-          </span>
-        ))}
+            <span>TOTAL</span>
+            <span className="text-flame">quem paga?</span>
+          </p>
+        </div>
       </div>
 
-      <div className="flex flex-col items-center gap-3 overflow-hidden">
-        <Wordmark size="lg" className="animate-rise-in" />
+      <div className="flex flex-col items-center gap-3">
+        <Wordmark size="lg" className="animate-card-pop" />
         <p
-          className="animate-rise-in text-xs font-semibold uppercase tracking-[0.28em] text-ink/60"
-          style={{ animationDelay: "180ms" }}
+          className="animate-rise-in text-xs font-semibold uppercase tracking-[0.28em] text-ink/70"
+          style={{ animationDelay: "260ms" }}
         >
-          Contando os pontos
+          Ganha quem não paga
         </p>
       </div>
     </div>

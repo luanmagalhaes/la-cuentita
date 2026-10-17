@@ -32,7 +32,7 @@ export function HomeScreen({
         <header className="animate-rise-in mx-auto w-full max-w-sm text-center">
           <Wordmark size="lg" />
           <p className="mx-auto mt-4 max-w-xs text-base leading-relaxed text-ink/70">
-            Cada um no seu celular lança a própria rodada. Ganha quem passar de 200.
+            Vocês jogam com as cartas. O app faz a conta de cada bar e descobre quem saiu sem pagar.
           </p>
 
           <div className="mt-8 flex flex-col gap-3">
@@ -67,7 +67,7 @@ export function HomeScreen({
           </div>
 
           <p className="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-ink/45">
-            3 a 12 jogadores · Cada um no seu aparelho
+            3 a 8 jogadores · Cada um no seu celular
           </p>
         </header>
       </div>

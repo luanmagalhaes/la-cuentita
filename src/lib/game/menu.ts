@@ -5,6 +5,7 @@ export interface Dish {
   kind: TapaKind;
   price: number;
   name: string | null;
+  emoji: string;
 }
 
 export const kindLabels: Record<TapaKind, string> = {
@@ -27,8 +28,19 @@ const knownDishes: Record<TapaKind, Partial<Record<number, string>>> = {
   VEG: { 20: "Gazpacho", 40: "Tortilla de patatas", 60: "Ensaladilla rusa" },
 };
 
+const dishEmoji: Record<TapaKind, Record<number, string>> = {
+  MEAT: { 10: "🌭", 20: "🍢", 30: "🧆", 40: "🍗", 50: "🥩", 60: "🥓", 70: "🍖" },
+  FISH: { 10: "🦪", 20: "🐟", 30: "🦑", 40: "🐠", 50: "🦀", 60: "🐙", 70: "🍤" },
+  VEG: { 10: "🫒", 20: "🍅", 30: "🌶️", 40: "🥔", 50: "🍄", 60: "🥗", 70: "🥘" },
+};
+
 export function dishFor(kind: TapaKind, price: number): Dish {
-  return { kind, price, name: knownDishes[kind][price] ?? null };
+  return {
+    kind,
+    price,
+    name: knownDishes[kind][price] ?? null,
+    emoji: dishEmoji[kind][price] ?? "🍽️",
+  };
 }
 
 export function menuFor(kind: TapaKind): Dish[] {

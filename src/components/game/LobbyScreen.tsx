@@ -111,10 +111,10 @@ export function LobbyScreen({
               </p>
               <ul className="mt-3 flex flex-col gap-1.5 text-xs">
                 <li className="rounded-xl bg-sky/50 px-3 py-2">
-                  Cada um lança a própria rodada no celular dele
+                  Quem pedir a conta lança no celular dele
                 </li>
                 <li className="rounded-xl bg-sky/50 px-3 py-2">
-                  A rodada vira quando todo mundo tiver lançado
+                  A conta sai da poupança de quem pagou
                 </li>
                 <li className="rounded-xl bg-sky/50 px-3 py-2">
                   Cada um começa com {startingSavingsFor(players.length)}€
