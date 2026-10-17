@@ -40,10 +40,10 @@ const frames: Record<CardTone, string> = {
 
 const sizes: Record<CardSize, { card: string; corner: string; title: string; art: string; plate: string }> = {
   sm: {
-    card: "h-[5.6rem] w-[4rem]",
+    card: "h-[6rem] w-[4.2rem]",
     corner: "text-[0.8rem] px-1.5 pb-0.5 pt-0.5 rounded-br-[14px]",
-    title: "text-[0.42rem]",
-    art: "text-[1.45rem]",
+    title: "text-[0.5rem]",
+    art: "text-[1.35rem]",
     plate: "h-10 w-10",
   },
   md: {
@@ -82,12 +82,7 @@ export function TableCard({
       >
         {corner}
       </span>
-      <span
-        className={`absolute right-1 top-1 z-10 max-w-[58%] text-right font-bold uppercase leading-[1.05] tracking-wide ${scale.title}`}
-      >
-        {title}
-      </span>
-      <span className="flex flex-1 items-center justify-center pt-3">
+      <span className="flex flex-1 items-center justify-center pt-4">
         <span
           className={`flex items-center justify-center rounded-full ${scale.plate} ${
             chalk
@@ -98,8 +93,13 @@ export function TableCard({
           <span className={`leading-none ${scale.art}`}>{art}</span>
         </span>
       </span>
+      <span
+        className={`z-10 line-clamp-2 min-h-[2.1em] px-1 pb-1 text-center font-bold uppercase leading-[1.05] tracking-wide ${scale.title}`}
+      >
+        {title}
+      </span>
       {count > 0 ? (
-        <span className="display animate-tap-bounce absolute bottom-1 right-1 z-20 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-black bg-flame px-1 text-xs text-paper">
+        <span className="display animate-tap-bounce absolute right-1 top-1 z-20 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-black bg-flame px-1 text-xs text-paper">
           ×{count}
         </span>
       ) : null}
