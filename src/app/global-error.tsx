@@ -44,7 +44,7 @@ export default function GlobalError({ error, retry }: GlobalErrorProps) {
         <title>La Cuentita</title>
         <strong style={{ fontSize: "28px" }}>O app travou</strong>
         <p style={{ maxWidth: "300px", fontSize: "14px", fontWeight: 600, opacity: 0.7 }}>
-          Algo deu errado aqui no app. Seus pontos já salvos continuam guardados no servidor.
+          Algo deu errado aqui no app. As contas já lançadas continuam guardadas no servidor.
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: "8px", width: "100%", maxWidth: "300px" }}>
           <button

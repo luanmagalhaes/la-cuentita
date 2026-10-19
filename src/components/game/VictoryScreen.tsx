@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Confetti } from "@/components/fx/Confetti";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -30,6 +31,8 @@ const cheers = [
 ];
 
 export function VictoryScreen({ winners, ranked, bars, meId, canUndo, busy, onUndo, onNewTable }: VictoryScreenProps) {
+  const [confirmingUndo, setConfirmingUndo] = useState(false);
+
   useEffect(() => {
     sound.win();
   }, []);
@@ -43,6 +46,22 @@ export function VictoryScreen({ winners, ranked, bars, meId, canUndo, busy, onUn
     <>
       <Confetti running />
 
+      {confirmingUndo ? (
+        <ConfirmModal
+          title="Desfazer a última conta?"
+          tone="danger"
+          busy={busy}
+          confirmLabel="Desfazer e voltar"
+          cancelLabel="Deixa assim"
+          body={<p>A partida reabre no celular de todo mundo e o último bar volta a ficar sem conta.</p>}
+          onCancel={() => setConfirmingUndo(false)}
+          onConfirm={() => {
+            setConfirmingUndo(false);
+            onUndo();
+          }}
+        />
+      ) : null}
+
       <Screen
         footer={
           <div className="flex flex-col gap-2">
@@ -53,7 +72,7 @@ export function VictoryScreen({ winners, ranked, bars, meId, canUndo, busy, onUn
               <button
                 type="button"
                 disabled={busy}
-                onClick={onUndo}
+                onClick={() => setConfirmingUndo(true)}
                 className="display rounded-xl px-3 py-2 text-sm text-ink/55 hover:text-ink"
               >
                 Errou a última conta? Desfazer e voltar pro jogo

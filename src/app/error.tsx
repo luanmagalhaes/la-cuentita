@@ -20,7 +20,7 @@ export default function ErrorPage({ error, retry }: ErrorPageProps) {
       <Wordmark size="sm" className="opacity-50" />
       <span className="display text-3xl text-ink">Essa tela travou</span>
       <p className="max-w-xs text-sm font-semibold text-ink/60">
-        Algo deu errado aqui no app. Seus pontos já salvos continuam guardados no servidor.
+        Algo deu errado aqui no app. As contas já lançadas continuam guardadas no servidor.
       </p>
       <div className="flex w-full max-w-xs flex-col gap-2">
         <Button variant="ink" size="lg" fullWidth onClick={() => retry()}>

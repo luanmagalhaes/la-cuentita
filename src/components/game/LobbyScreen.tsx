@@ -87,7 +87,9 @@ export function LobbyScreen({
           >
             {enough
               ? "Começar a partida"
-              : `Faltam ${minPlayers - players.length} para começar`}
+              : minPlayers - players.length === 1
+                ? "Falta 1 pessoa para começar"
+                : `Faltam ${minPlayers - players.length} pessoas para começar`}
           </Button>
         ) : (
           <p className="text-center text-sm font-semibold text-ink/60">

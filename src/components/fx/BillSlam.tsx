@@ -88,16 +88,37 @@ export function BillSlam({ bill, players, meId, onDone }: BillSlamProps) {
   const payerName = payer ? (payer.id === meId ? "Você" : payer.name) : "Alguém";
 
   useEffect(() => {
-    if (free) {
-      sound.lucky();
-    } else {
-      sound.register();
-      sound.sadTrombone();
+    let timer = 0;
+
+    function begin() {
+      document.removeEventListener("visibilitychange", wake);
+
+      if (free) {
+        sound.lucky();
+      } else {
+        sound.register();
+        sound.sadTrombone();
+      }
+
+      timer = window.setTimeout(() => finish(), 4200);
     }
 
-    const timer = window.setTimeout(() => finish(), 4200);
+    function wake() {
+      if (document.visibilityState === "visible") {
+        begin();
+      }
+    }
 
-    return () => window.clearTimeout(timer);
+    if (document.visibilityState === "visible") {
+      begin();
+    } else {
+      document.addEventListener("visibilitychange", wake);
+    }
+
+    return () => {
+      document.removeEventListener("visibilitychange", wake);
+      window.clearTimeout(timer);
+    };
   }, [free]);
 
   return (
@@ -105,7 +126,7 @@ export function BillSlam({ bill, players, meId, onDone }: BillSlamProps) {
       type="button"
       onClick={onDone}
       aria-label="Fechar a animação"
-      className="fixed inset-0 z-[85] flex cursor-pointer flex-col items-center justify-center overflow-hidden bg-ink/85 px-6 text-center"
+      className="fixed inset-0 z-[96] flex cursor-pointer flex-col items-center justify-center overflow-hidden bg-ink/85 px-6 text-center"
     >
       {free
         ? null
@@ -170,8 +191,8 @@ export function BillSlam({ bill, players, meId, onDone }: BillSlamProps) {
             : payerName}
       </p>
 
-      <div className="relative mt-3 h-44 w-64 overflow-hidden">
-        <div className="animate-receipt-unroll absolute inset-x-0 top-0 rounded-b-md bg-paper px-4 pb-3 pt-2 text-left font-mono text-xs text-ink shadow-[0_8px_0_rgba(0,0,0,0.35)]">
+      <div className="relative mt-3 max-h-[40vh] w-64 overflow-hidden">
+        <div className="animate-receipt-unroll rounded-b-md bg-paper px-4 pb-3 pt-2 text-left font-mono text-xs text-ink shadow-[0_8px_0_rgba(0,0,0,0.35)]">
           <p className="text-center font-bold tracking-[0.2em]">BAR {bill.round_number}</p>
           {lines.map((line) => (
             <p key={line.label} className="flex justify-between border-b border-dashed border-ink/25 py-0.5">

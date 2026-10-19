@@ -29,15 +29,36 @@ const moths = Array.from({ length: 9 }, (_, index) => ({
 export function BankruptSlam({ broke, meId, onDone }: BankruptSlamProps) {
   const finish = useEffectEvent(onDone);
   const first = broke[0];
-  const names = broke.map((person) => (person.id === meId ? "Você" : person.name)).join(" e ");
+  const names = broke
+    .map((person, index) => (person.id === meId ? (index === 0 ? "Você" : "você") : person.name))
+    .join(" e ");
   const jeer = jeers[(first?.name.length ?? 0) % jeers.length];
 
   useEffect(() => {
-    sound.bankrupt();
+    let timer = 0;
 
-    const timer = window.setTimeout(() => finish(), 4000);
+    function begin() {
+      document.removeEventListener("visibilitychange", wake);
+      sound.bankrupt();
+      timer = window.setTimeout(() => finish(), 4000);
+    }
 
-    return () => window.clearTimeout(timer);
+    function wake() {
+      if (document.visibilityState === "visible") {
+        begin();
+      }
+    }
+
+    if (document.visibilityState === "visible") {
+      begin();
+    } else {
+      document.addEventListener("visibilitychange", wake);
+    }
+
+    return () => {
+      document.removeEventListener("visibilitychange", wake);
+      window.clearTimeout(timer);
+    };
   }, []);
 
   return (
@@ -45,7 +66,7 @@ export function BankruptSlam({ broke, meId, onDone }: BankruptSlamProps) {
       type="button"
       onClick={onDone}
       aria-label="Ver quem ganhou"
-      className="chalkboard fixed inset-0 z-[88] flex cursor-pointer flex-col items-center justify-center overflow-hidden px-6 text-center"
+      className="chalkboard fixed inset-0 z-[97] flex cursor-pointer flex-col items-center justify-center overflow-hidden px-6 text-center"
     >
       <div className="relative">
         <div className="flex flex-wrap justify-center gap-3">

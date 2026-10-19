@@ -4,6 +4,7 @@ import { checkBillDraft, computeBill, splitBill } from "@/lib/game/bill";
 import { maxNameLength, maxPlayers, minPlayers } from "@/lib/game/limits";
 import { startingSavingsFor } from "@/lib/game/rules";
 import { withSavings } from "@/lib/game/standings";
+import { faces } from "@/data/faces";
 import { serverClient } from "@/lib/supabase";
 import {
   RoomPhase,
@@ -186,18 +187,22 @@ export async function joinRoom(input: { code: string; name: string; emoji?: stri
     throw new ServiceError("Já tem alguém com esse nome na mesa", 409);
   }
 
-  const player = checked(
-    await client
-      .from("lc_players")
-      .insert({
-        room_id: room.id,
-        name,
-        emoji: input.emoji ?? null,
-        seat: Math.max(0, ...people.map((person) => person.seat)) + 1,
-      })
-      .select()
-      .single(),
-  ) as PlayerRow;
+  const inserted = await client
+    .from("lc_players")
+    .insert({
+      room_id: room.id,
+      name,
+      emoji: input.emoji ?? null,
+      seat: Math.max(0, ...people.map((person) => person.seat)) + 1,
+    })
+    .select()
+    .single();
+
+  if (inserted.error?.code === "23505") {
+    throw new ServiceError("Já tem alguém com esse nome na mesa", 409);
+  }
+
+  const player = checked(inserted) as PlayerRow;
 
   const accessToken = randomUUID().replace(/-/g, "");
 
@@ -218,10 +223,18 @@ export async function updateProfile(input: { code: string; token: string; emoji?
   const patch: Record<string, unknown> = {};
 
   if (input.avatar !== undefined) {
-    patch.avatar = input.avatar;
+    if (input.avatar !== null) {
+      throw new ServiceError("Para trocar a foto, use o botão de foto", 422);
+    }
+
+    patch.avatar = null;
   }
 
   if (input.emoji !== undefined) {
+    if (input.emoji !== null && !faces.includes(input.emoji)) {
+      throw new ServiceError("Escolha um dos emojis da lista", 422);
+    }
+
     patch.emoji = input.emoji;
   }
 

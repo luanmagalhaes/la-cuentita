@@ -83,7 +83,10 @@ export function BillSheet({
     mode === SplitMode.Half && partnerValid && partnerId
       ? { mode: SplitMode.Half, partnerId }
       : mode === SplitMode.Dutch
-        ? { mode: SplitMode.Dutch, excludedIds: excludedIds.filter((id) => id !== payerId) }
+        ? {
+            mode: SplitMode.Dutch,
+            excludedIds: excludedIds.filter((id) => id !== payerId && players.some((person) => person.id === id)),
+          }
         : { mode: SplitMode.Solo };
   const shares = splitBill({
     total: breakdown.total,
@@ -180,9 +183,18 @@ export function BillSheet({
                 {breakdown.raw < 0 ? " (os queimados zeraram a conta)" : ""}.
               </p>
               <ul className="flex flex-col gap-1 rounded-2xl bg-cream px-3 py-2 text-xs">
-                {shares.map((share) => {
+                {[
+                  ...shares,
+                  ...refunds
+                    .filter((item) => !shares.some((share) => share.playerId === item.player_id))
+                    .map((item) => ({ playerId: item.player_id, amount: 0 })),
+                ].map((share) => {
                   const person = players.find((item) => item.id === share.playerId);
                   const refund = refunds.find((item) => item.player_id === share.playerId)?.amount ?? 0;
+
+                  if (!person) {
+                    return null;
+                  }
 
                   return (
                     <li key={share.playerId} className="flex justify-between gap-2">
@@ -476,7 +488,9 @@ export function BillSheet({
                 <span className="block text-xs font-semibold text-ink/60">
                   {split.mode === SplitMode.Solo
                     ? `${payer?.id === meId ? "Você paga" : `${payer?.name ?? "Alguém"} paga`}`
-                    : `${shares.length} pessoas dividem`}
+                    : shares.length === 1
+                      ? "Só uma pessoa paga"
+                      : `${shares.length} pessoas dividem`}
                 </span>
                 <span key={breakdown.total} className="display animate-score-bump block text-4xl leading-none text-flame">
                   {euros(breakdown.total)}

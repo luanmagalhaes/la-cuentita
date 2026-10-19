@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError, type RoomState } from "@/lib/api";
 import { readableError } from "@/lib/friendly";
 
@@ -14,41 +14,48 @@ function roomIsGone(cause: unknown): boolean {
   return cause instanceof ApiError && cause.status === 404;
 }
 
+interface Snapshot {
+  key: string;
+  state: RoomState;
+}
+
 export function useRoom(code: string | null, token: string | null) {
-  const [state, setState] = useState<RoomState | null>(null);
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [goneKey, setGoneKey] = useState<string | null>(null);
-  const [trouble, setTrouble] = useState<string | null>(null);
+  const [trouble, setTrouble] = useState<{ key: string; message: string } | null>(null);
+  const sequence = useRef(0);
   const key = code ? seatKey(code, token) : null;
 
-  const absorb = useCallback(
-    (cause: unknown) => {
-      if (!code) {
-        return;
-      }
-
-      if (roomIsGone(cause)) {
-        setGoneKey(seatKey(code, token));
-
-        return;
-      }
-
-      setTrouble(readableError(cause));
-    },
-    [code, token],
-  );
-
-  const refresh = useCallback(async () => {
+  const load = useCallback(async () => {
     if (!code) {
       return;
     }
 
+    const current = seatKey(code, token);
+    sequence.current += 1;
+    const ticket = sequence.current;
+
     try {
-      setState(await api.state(code, token ?? undefined));
-      setTrouble(null);
+      const next = await api.state(code, token ?? undefined);
+
+      if (ticket === sequence.current) {
+        setSnapshot({ key: current, state: next });
+        setTrouble(null);
+      }
     } catch (cause) {
-      absorb(cause);
+      if (ticket !== sequence.current) {
+        return;
+      }
+
+      if (roomIsGone(cause)) {
+        setGoneKey(current);
+
+        return;
+      }
+
+      setTrouble({ key: current, message: readableError(cause) });
     }
-  }, [code, token, absorb]);
+  }, [code, token]);
 
   useEffect(() => {
     if (!code) {
@@ -56,40 +63,32 @@ export function useRoom(code: string | null, token: string | null) {
     }
 
     let alive = true;
+    let timer = 0;
 
-    const tick = async () => {
+    const loop = async () => {
       if (!alive) {
         return;
       }
 
-      try {
-        const next = await api.state(code, token ?? undefined);
+      await load();
 
-        if (alive) {
-          setState(next);
-          setTrouble(null);
-        }
-      } catch (cause) {
-        if (alive) {
-          absorb(cause);
-        }
+      if (alive) {
+        timer = window.setTimeout(() => void loop(), pollMs);
       }
     };
 
-    void tick();
-
-    const timer = window.setInterval(() => void tick(), pollMs);
+    timer = window.setTimeout(() => void loop(), 0);
 
     return () => {
       alive = false;
-      window.clearInterval(timer);
+      window.clearTimeout(timer);
     };
-  }, [code, token, absorb]);
+  }, [code, load]);
 
   return {
-    state: code ? state : null,
+    state: snapshot && snapshot.key === key ? snapshot.state : null,
     gone: key !== null && goneKey === key,
-    trouble: code ? trouble : null,
-    refresh,
+    trouble: trouble && trouble.key === key ? trouble.message : null,
+    refresh: load,
   };
 }

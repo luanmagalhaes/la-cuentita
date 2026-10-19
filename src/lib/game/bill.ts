@@ -162,17 +162,13 @@ function readSplit(value: unknown, payerId: string, playerIds: readonly string[]
       return "A lista de quem fica de fora veio estranha";
     }
 
-    const excludedIds = [...new Set(raw.map((id) => String(id)))];
+    const asked = [...new Set(raw.map((id) => String(id)))];
 
-    if (excludedIds.some((id) => !playerIds.includes(id))) {
-      return "Tem gente na lista de fora que não está na mesa";
-    }
-
-    if (excludedIds.includes(payerId)) {
+    if (asked.includes(payerId)) {
       return "Quem pediu a conta não pode ficar de fora da divisão";
     }
 
-    return { mode: SplitMode.Dutch, excludedIds };
+    return { mode: SplitMode.Dutch, excludedIds: asked.filter((id) => playerIds.includes(id)) };
   }
 
   return "Esse jeito de dividir a conta não existe";

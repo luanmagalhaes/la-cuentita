@@ -1,11 +1,17 @@
 import type { MatchRow, RankingRow } from "@/types/history";
 
+const monthFormat = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Sao_Paulo",
+  year: "numeric",
+  month: "2-digit",
+});
+
 export function monthOf(date: string): string {
-  return date.slice(0, 7);
+  return monthFormat.format(new Date(date)).slice(0, 7);
 }
 
 export function currentMonth(now = new Date()): string {
-  return now.toISOString().slice(0, 7);
+  return monthFormat.format(now).slice(0, 7);
 }
 
 export function matchesInMonth(
