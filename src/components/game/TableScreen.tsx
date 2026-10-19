@@ -77,10 +77,10 @@ export function TableScreen({
       footer={
         <div className="flex flex-col gap-2">
           <Button variant="flame" size="lg" fullWidth disabled={busy} onClick={onLaunchBill}>
-            Pedi a conta do bar {room.round_number}
+            Vou ter que pagar essa la ela de conta
           </Button>
           <p className="text-center text-xs font-semibold text-ink/55">
-            Quem pediu a conta toca aqui e marca as cartas da mesa
+            Bar {room.round_number}: quem pediu a conta toca aqui e marca as cartas da mesa
           </p>
         </div>
       }

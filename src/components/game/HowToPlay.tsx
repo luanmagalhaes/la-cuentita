@@ -33,7 +33,7 @@ const slides: Slide[] = [
         </p>
         <p>
           Cada rodada é um bar. Quando alguém pede a conta, essa pessoa toca em{" "}
-          <strong className="text-ink">Pedi a conta</strong> e marca as cartas que ficaram na mesa.
+          <strong className="text-ink">Vou ter que pagar essa la ela de conta</strong> e marca as cartas que ficaram na mesa.
         </p>
         <p>O valor sai da poupança de quem pagou, na hora, no celular de todo mundo.</p>
       </div>
