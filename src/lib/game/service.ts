@@ -321,8 +321,7 @@ async function writeBill(input: { code: string; token: string; body: unknown; re
   });
   const detail: BillDetail = {
     tapas: draft.tapas,
-    burnt: draft.burnt,
-    burntPremium: draft.burntPremium,
+    burnts: draft.burnts,
     wine: draft.wine,
     cake: draft.cake,
     tips: draft.tips,

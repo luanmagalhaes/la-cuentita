@@ -17,6 +17,7 @@ import { useRoom } from "@/hooks/useRoom";
 import { useSession } from "@/hooks/useSession";
 import { api } from "@/lib/api";
 import { readableError } from "@/lib/friendly";
+import { legacyBurnts } from "@/lib/game/bill";
 import { broke, ranked, winners } from "@/lib/game/standings";
 import { markSeen, seenSnapshot, serverSeenSnapshot, subscribeSeen } from "@/lib/seen";
 import { applyMuted, sound, unlockSound } from "@/lib/sound";
@@ -40,8 +41,7 @@ function draftFromBill(bill: BillView, fallbackPayer: string): BillDraft {
     roundNumber: bill.round_number,
     payerId: bill.payer_id ?? fallbackPayer,
     tapas: bill.detail.tapas,
-    burnt: bill.detail.burnt,
-    burntPremium: bill.detail.burntPremium,
+    burnts: bill.detail.burnts ?? legacyBurnts(bill.detail.burnt, bill.detail.burntPremium),
     wine: bill.detail.wine,
     cake: bill.detail.cake,
     tips: bill.detail.tips,

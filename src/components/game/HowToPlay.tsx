@@ -78,7 +78,7 @@ const slides: Slide[] = [
           Teve <strong className="text-ink">Premium</strong>? Marque a ⭐ na tapa que foi junto: ela vale o dobro.
         </p>
         <p>
-          <strong className="text-ink">Plato quemado</strong> desconta 10€ (com Premium, 20€).
+          <strong className="text-ink">Plato quemado</strong> é desconto: tem de −10€, −20€, −50€ e −70€. Com Premium, o desconto dobra.
         </p>
       </div>
     ),

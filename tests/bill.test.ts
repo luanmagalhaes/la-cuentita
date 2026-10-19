@@ -16,7 +16,7 @@ describe("soma da conta", () => {
   });
 
   it("prato queimado desconta 10", () => {
-    const bill = computeBill(cards({ tapas: [veg(40)], burnt: 1 }));
+    const bill = computeBill(cards({ tapas: [veg(40)], burnts: [{ value: 10, premium: false }] }));
 
     expect(bill.burnt).toBe(-10);
     expect(bill.total).toBe(30);
@@ -30,7 +30,7 @@ describe("soma da conta", () => {
   });
 
   it("premium em prato queimado dobra o desconto", () => {
-    const bill = computeBill(cards({ tapas: [meat(30)], burntPremium: 1 }));
+    const bill = computeBill(cards({ tapas: [meat(30)], burnts: [{ value: 10, premium: true }] }));
 
     expect(bill.burnt).toBe(-10);
     expect(bill.premiumBonus).toBe(-10);
@@ -57,8 +57,28 @@ describe("soma da conta", () => {
     expect(computeBill(cards({ wine: 1, tips: 1 })).tips).toBe(0);
   });
 
+  it("queimados de valores diferentes somam o desconto de cada um", () => {
+    const bill = computeBill(
+      cards({
+        tapas: [meat(70), fish(70)],
+        burnts: [
+          { value: 50, premium: false },
+          { value: 20, premium: true },
+        ],
+      }),
+    );
+
+    expect(bill.burnt).toBe(-70);
+    expect(bill.premiumBonus).toBe(-20);
+    expect(bill.total).toBe(50);
+  });
+
+  it("premium em queimado de 70 tira 140", () => {
+    expect(computeBill(cards({ tapas: [veg(70), fish(70), meat(70)], burnts: [{ value: 70, premium: true }] })).total).toBe(70);
+  });
+
   it("conta negativa não cobra ninguém", () => {
-    const bill = computeBill(cards({ tapas: [meat(10)], burnt: 3 }));
+    const bill = computeBill(cards({ tapas: [meat(10)], burnts: [{ value: 10, premium: false }, { value: 20, premium: false }] }));
 
     expect(bill.raw).toBe(-20);
     expect(bill.total).toBe(0);
@@ -68,7 +88,7 @@ describe("soma da conta", () => {
     const bill = computeBill(
       cards({
         tapas: [meat(10), meat(30), fish(20), fish(70, true), veg(40)],
-        burnt: 1,
+        burnts: [{ value: 10, premium: false }],
         wine: 2,
         cake: true,
         tips: 1,
@@ -149,7 +169,7 @@ describe("conferência do rascunho", () => {
 
   it("recusa mais premium do que o baralho tem", () => {
     const check = checkBillDraft(
-      { ...base, tapas: [meat(10, true), meat(20, true), fish(30, true), veg(40, true)], burntPremium: 1 },
+      { ...base, tapas: [meat(10, true), meat(20, true), fish(30, true), veg(40, true)], burnts: [{ value: 20, premium: true }] },
       people,
     );
 
@@ -166,6 +186,20 @@ describe("conferência do rascunho", () => {
     const check = checkBillDraft({ ...base, split: { mode: "DUTCH", excludedIds: ["eu"] } }, people);
 
     expect(check.ok).toBe(false);
+  });
+
+  it("recusa queimado com valor que não existe", () => {
+    expect(checkBillDraft({ ...base, burnts: [{ value: 30, premium: false }] }, people).ok).toBe(false);
+  });
+
+  it("aceita o formato antigo de queimado como cartas de 10", () => {
+    const check = checkBillDraft({ ...base, burnt: 2, burntPremium: 1 }, people);
+
+    expect(check.ok && check.draft.burnts).toEqual([
+      { value: 10, premium: false },
+      { value: 10, premium: false },
+      { value: 10, premium: true },
+    ]);
   });
 
   it("recusa pagador de fora da mesa", () => {

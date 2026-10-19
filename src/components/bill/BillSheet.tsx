@@ -8,13 +8,14 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { computeBill, premiumCount, splitBill } from "@/lib/game/bill";
 import { dishFor, kindLabels, kindOrder, menuFor } from "@/lib/game/menu";
-import { burntValue, cakeValue, deckLimits, wineValue } from "@/lib/game/rules";
+import { burntValues, cakeValue, deckLimits, wineValue } from "@/lib/game/rules";
 import { sound } from "@/lib/sound";
 import {
   SplitMode,
   type BillDraft,
   type BillShareRow,
   type BillSplit,
+  type BurntPick,
   type PlayerView,
   type TapaKind,
   type TapaPick,
@@ -58,8 +59,7 @@ export function BillSheet({
   onBack,
 }: BillSheetProps) {
   const [tapas, setTapas] = useState<TapaPick[]>(initial?.tapas ?? []);
-  const [burnt, setBurnt] = useState(initial?.burnt ?? 0);
-  const [burntPremium, setBurntPremium] = useState(initial?.burntPremium ?? 0);
+  const [burnts, setBurnts] = useState<BurntPick[]>(initial?.burnts ?? []);
   const [wine, setWine] = useState(initial?.wine ?? 0);
   const [cake, setCake] = useState(initial?.cake ?? false);
   const [tips, setTips] = useState(initial?.tips ?? 0);
@@ -73,9 +73,9 @@ export function BillSheet({
   );
   const [confirming, setConfirming] = useState(false);
 
-  const cards = { tapas, burnt, burntPremium, wine, cake, tips };
+  const cards = { tapas, burnts, wine, cake, tips };
   const breakdown = computeBill(cards);
-  const premiumsLeft = deckLimits.premium - premiumCount({ tapas, burntPremium });
+  const premiumsLeft = deckLimits.premium - premiumCount({ tapas, burnts });
   const payer = players.find((person) => person.id === payerId) ?? null;
   const others = players.filter((person) => person.id !== payerId);
   const partnerValid = partnerId !== null && others.some((person) => person.id === partnerId);
@@ -133,30 +133,39 @@ export function BillSheet({
     );
   };
 
-  const toggleBurntPremium = (starred: boolean) => {
-    if (starred) {
-      setBurntPremium((value) => value - 1);
-      setBurnt((value) => value + 1);
-
+  const addBurnt = (value: number) => {
+    if (burnts.length >= deckLimits.burnt) {
       return;
     }
 
-    if (premiumsLeft <= 0) {
-      return;
-    }
-
-    setBurnt((value) => value - 1);
-    setBurntPremium((value) => value + 1);
+    sound.pick();
+    setBurnts((current) => [...current, { value, premium: false }]);
   };
 
-  const removeBurnt = (starred: boolean) => {
-    sound.tap();
+  const dropBurntOf = (value: number) => {
+    const plain = burnts.findLastIndex((pick) => pick.value === value && !pick.premium);
+    const any = burnts.findLastIndex((pick) => pick.value === value);
+    const index = plain >= 0 ? plain : any;
 
-    if (starred) {
-      setBurntPremium((value) => value - 1);
-    } else {
-      setBurnt((value) => value - 1);
+    if (index >= 0) {
+      setBurnts((current) => current.filter((_, at) => at !== index));
     }
+  };
+
+  const toggleBurntPremium = (index: number) => {
+    const target = burnts[index];
+
+    if (!target || (!target.premium && premiumsLeft <= 0)) {
+      return;
+    }
+
+    sound.tap();
+    setBurnts((current) => current.map((pick, at) => (at === index ? { ...pick, premium: !pick.premium } : pick)));
+  };
+
+  const removeBurnt = (index: number) => {
+    sound.tap();
+    setBurnts((current) => current.filter((_, at) => at !== index));
   };
 
   const toggleExcluded = (id: string) => {
@@ -312,22 +321,24 @@ export function BillSheet({
                   />
                   <Minus show={wine > 0} onTap={() => setWine(wine - 1)} />
                 </div>
-                <div className="flex shrink-0 flex-col items-center gap-1">
-                  <TableCard
-                    tone="BURNT"
-                    corner={euros(burntValue)}
-                    title="Plato quemado"
-                    art="🔥"
-                    count={burnt + burntPremium}
-                    onTap={() => {
-                      if (burnt + burntPremium < deckLimits.burnt) {
-                        sound.pick();
-                        setBurnt(burnt + 1);
-                      }
-                    }}
-                  />
-                  <Minus show={burnt + burntPremium > 0} onTap={() => removeBurnt(burnt === 0)} />
-                </div>
+                {burntValues.map((value) => {
+                  const count = burnts.filter((pick) => pick.value === value).length;
+
+                  return (
+                    <div key={value} className="flex shrink-0 flex-col items-center gap-1">
+                      <TableCard
+                        tone="BURNT"
+                        corner={euros(-value)}
+                        title="Plato quemado"
+                        art="🔥"
+                        count={count}
+                        onTap={() => addBurnt(value)}
+                        label={`Somar prato queimado de menos ${value} euros`}
+                      />
+                      <Minus show={count > 0} onTap={() => dropBurntOf(value)} />
+                    </div>
+                  );
+                })}
                 <div className="flex shrink-0 flex-col items-center gap-1">
                   <TableCard
                     tone="CAKE"
@@ -372,7 +383,7 @@ export function BillSheet({
                   ⭐ = Premium (dobra) · restam {premiumsLeft}
                 </span>
               </div>
-              {tapas.length + burnt + burntPremium === 0 ? (
+              {tapas.length + burnts.length === 0 ? (
                 <p className="rounded-2xl border-2 border-dashed border-ink/25 px-3 py-3 text-center text-xs font-semibold text-ink/50">
                   Nenhuma tapa ainda. Toque nas cartas acima.
                 </p>
@@ -392,17 +403,17 @@ export function BillSheet({
                       <Chip active={false} onTap={() => removeTapa(index)} label="✕" />
                     </li>
                   ))}
-                  {Array.from({ length: burnt + burntPremium }, (_, index) => {
-                    const starred = index < burntPremium;
+                  {burnts.map((pick, index) => {
+                    const starred = pick.premium;
 
                     return (
                       <li
-                        key={`burnt-${index}`}
+                        key={`burnt-${pick.value}-${index}`}
                         className="chalkboard flex items-center gap-1 rounded-full border-2 border-ink py-0.5 pl-2.5 pr-1 text-xs font-semibold text-paper"
                       >
-                        <span>Queimado {starred ? "−20€" : "−10€"}</span>
-                        <Chip active={starred} onTap={() => toggleBurntPremium(starred)} label="⭐" />
-                        <Chip active={false} onTap={() => removeBurnt(starred)} label="✕" />
+                        <span>Queimado {euros(-(starred ? pick.value * 2 : pick.value))}</span>
+                        <Chip active={starred} onTap={() => toggleBurntPremium(index)} label="⭐" />
+                        <Chip active={false} onTap={() => removeBurnt(index)} label="✕" />
                       </li>
                     );
                   })}

@@ -1,7 +1,7 @@
 import { maxPlayers, minPlayers } from "@/lib/game/limits";
 
 export const tapaPrices = [10, 20, 30, 40, 50, 60, 70] as const;
-export const burntValue = -10;
+export const burntValues = [10, 20, 50, 70] as const;
 export const cakeValue = 40;
 export const wineSetSize = 5;
 export const wineSetTotals = [0, 30, 60, 120, 180, 240] as const;
@@ -39,6 +39,10 @@ export function wineValue(bottles: number): number {
   const rest = count % wineSetSize;
 
   return fullSets * wineSetTotals[wineSetSize] + wineSetTotals[rest];
+}
+
+export function isBurntValue(value: number): boolean {
+  return (burntValues as readonly number[]).includes(value);
 }
 
 export function isTapaPrice(value: number): boolean {

@@ -1,4 +1,4 @@
-import { burntValue, cakeValue, deckLimits, isTapaPrice, wineValue } from "@/lib/game/rules";
+import { cakeValue, deckLimits, isBurntValue, isTapaPrice, wineValue } from "@/lib/game/rules";
 import {
   SplitMode,
   TapaKind,
@@ -7,6 +7,7 @@ import {
   type BillDraft,
   type BillShare,
   type BillSplit,
+  type BurntPick,
   type TapaPick,
 } from "@/types/room";
 
@@ -16,8 +17,7 @@ const tapaKinds: readonly string[] = Object.values(TapaKind);
 
 export const emptyCards: BillCards = {
   tapas: [],
-  burnt: 0,
-  burntPremium: 0,
+  burnts: [],
   wine: 0,
   cake: false,
   tips: 0,
@@ -31,8 +31,17 @@ export function cheapestTapa(tapas: readonly TapaPick[]): number | null {
   return Math.min(...tapas.map((tapa) => tapa.price));
 }
 
-export function premiumCount(cards: Pick<BillCards, "tapas" | "burntPremium">): number {
-  return cards.tapas.filter((tapa) => tapa.premium).length + cards.burntPremium;
+export function premiumCount(cards: Pick<BillCards, "tapas" | "burnts">): number {
+  return (
+    cards.tapas.filter((tapa) => tapa.premium).length + cards.burnts.filter((burnt) => burnt.premium).length
+  );
+}
+
+export function legacyBurnts(burnt: number | undefined, burntPremium: number | undefined): BurntPick[] {
+  return [
+    ...Array.from({ length: burnt ?? 0 }, () => ({ value: 10, premium: false })),
+    ...Array.from({ length: burntPremium ?? 0 }, () => ({ value: 10, premium: true })),
+  ];
 }
 
 export function computeBill(cards: BillCards): BillBreakdown {
@@ -40,8 +49,9 @@ export function computeBill(cards: BillCards): BillBreakdown {
   const premiumTapas = cards.tapas
     .filter((tapa) => tapa.premium)
     .reduce((sum, tapa) => sum + tapa.price, 0);
-  const burnt = (cards.burnt + cards.burntPremium) * burntValue;
-  const premiumBonus = premiumTapas + cards.burntPremium * burntValue;
+  const burnt = -cards.burnts.reduce((sum, pick) => sum + pick.value, 0);
+  const premiumBurnt = cards.burnts.filter((pick) => pick.premium).reduce((sum, pick) => sum + pick.value, 0);
+  const premiumBonus = premiumTapas - premiumBurnt;
   const wine = wineValue(cards.wine);
   const cake = cards.cake ? cakeValue : 0;
   const cheapest = cheapestTapa(cards.tapas);
@@ -134,6 +144,37 @@ function readTapas(value: unknown): TapaPick[] | string {
   return tapas;
 }
 
+function readBurnts(input: Record<string, unknown>): BurntPick[] | string {
+  if (!Array.isArray(input.burnts)) {
+    const burnt = wholeCount(input.burnt, deckLimits.burnt);
+    const burntPremium = wholeCount(input.burntPremium, deckLimits.burnt);
+
+    if (burnt === null || burntPremium === null || burnt + burntPremium > deckLimits.burnt) {
+      return `O baralho só tem ${deckLimits.burnt} pratos queimados`;
+    }
+
+    return legacyBurnts(burnt, burntPremium);
+  }
+
+  if (input.burnts.length > deckLimits.burnt) {
+    return `O baralho só tem ${deckLimits.burnt} pratos queimados`;
+  }
+
+  const burnts: BurntPick[] = [];
+
+  for (const item of input.burnts) {
+    const value = Number((item as { value?: unknown })?.value);
+
+    if (!isBurntValue(value)) {
+      return "Tem um prato queimado com valor que não existe no baralho";
+    }
+
+    burnts.push({ value, premium: (item as { premium?: unknown })?.premium === true });
+  }
+
+  return burnts;
+}
+
 function readSplit(value: unknown, payerId: string, playerIds: readonly string[]): BillSplit | string {
   const mode = String((value as { mode?: unknown })?.mode ?? SplitMode.Solo);
 
@@ -194,13 +235,12 @@ export function checkBillDraft(value: unknown, playerIds: readonly string[]): Dr
     return { ok: false, error: tapas };
   }
 
-  const burnt = wholeCount(input.burnt, deckLimits.burnt);
-  const burntPremium = wholeCount(input.burntPremium, deckLimits.burnt);
+  const burnts = readBurnts(input);
   const wine = wholeCount(input.wine, deckLimits.wine);
   const tips = wholeCount(input.tips, deckLimits.tips);
 
-  if (burnt === null || burntPremium === null || burnt + burntPremium > deckLimits.burnt) {
-    return { ok: false, error: `O baralho só tem ${deckLimits.burnt} pratos queimados` };
+  if (typeof burnts === "string") {
+    return { ok: false, error: burnts };
   }
 
   if (wine === null) {
@@ -211,7 +251,7 @@ export function checkBillDraft(value: unknown, playerIds: readonly string[]): Dr
     return { ok: false, error: `O baralho só tem ${deckLimits.tips} gorjetas` };
   }
 
-  if (premiumCount({ tapas, burntPremium }) > deckLimits.premium) {
+  if (premiumCount({ tapas, burnts }) > deckLimits.premium) {
     return { ok: false, error: `O baralho só tem ${deckLimits.premium} cartas Premium` };
   }
 
@@ -227,8 +267,7 @@ export function checkBillDraft(value: unknown, playerIds: readonly string[]): Dr
       roundNumber,
       payerId,
       tapas,
-      burnt,
-      burntPremium,
+      burnts,
       wine,
       cake: input.cake === true,
       tips,

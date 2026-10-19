@@ -28,6 +28,11 @@ export interface TapaPick {
   premium: boolean;
 }
 
+export interface BurntPick {
+  value: number;
+  premium: boolean;
+}
+
 export type BillSplit =
   | { mode: typeof SplitMode.Solo }
   | { mode: typeof SplitMode.Half; partnerId: string }
@@ -35,8 +40,7 @@ export type BillSplit =
 
 export interface BillCards {
   tapas: TapaPick[];
-  burnt: number;
-  burntPremium: number;
+  burnts: BurntPick[];
   wine: number;
   cake: boolean;
   tips: number;
@@ -65,7 +69,10 @@ export interface BillShare {
   amount: number;
 }
 
-export interface BillDetail extends BillCards {
+export interface BillDetail extends Omit<BillCards, "burnts"> {
+  burnts?: BurntPick[];
+  burnt?: number;
+  burntPremium?: number;
   split: BillSplit;
   breakdown: BillBreakdown;
 }
