@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { CardRail } from "@/components/cards/CardRail";
 import { TableCard } from "@/components/cards/TableCard";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -208,12 +209,12 @@ export function BillSheet({ roundNumber, meId, players, initial, busy, error, on
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3">
+          <div className="soft-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3">
             <section>
               <h3 className="display mb-1.5 px-1 text-sm uppercase tracking-[0.14em] text-ink/60">
                 Quem pediu a conta
               </h3>
-              <div className="flex gap-2 overflow-x-auto px-1 pb-1">
+              <CardRail>
                 {players.map((person) => (
                   <button
                     key={person.id}
@@ -233,7 +234,7 @@ export function BillSheet({ roundNumber, meId, players, initial, busy, error, on
                     </span>
                   </button>
                 ))}
-              </div>
+              </CardRail>
             </section>
 
             {kindOrder.map((kind) => (
@@ -241,7 +242,7 @@ export function BillSheet({ roundNumber, meId, players, initial, busy, error, on
                 <h3 className="display mb-1.5 px-1 text-sm uppercase tracking-[0.14em] text-ink/60">
                   {kindLabels[kind]}
                 </h3>
-                <div className="flex gap-2 overflow-x-auto px-1 pb-2 pt-1">
+                <CardRail>
                   {menuFor(kind).map((dish) => (
                     <TableCard
                       key={dish.price}
@@ -254,7 +255,7 @@ export function BillSheet({ roundNumber, meId, players, initial, busy, error, on
                       label={`Somar ${dish.name ?? kindLabels[kind]} de ${dish.price} euros`}
                     />
                   ))}
-                </div>
+                </CardRail>
               </section>
             ))}
 
@@ -262,7 +263,7 @@ export function BillSheet({ roundNumber, meId, players, initial, busy, error, on
               <h3 className="display mb-1.5 px-1 text-sm uppercase tracking-[0.14em] text-ink/60">
                 Vinho e especiais
               </h3>
-              <div className="flex gap-2 overflow-x-auto px-1 pb-2 pt-1">
+              <CardRail>
                 <div className="flex shrink-0 flex-col items-center gap-1">
                   <TableCard
                     tone="WINE"
@@ -325,7 +326,7 @@ export function BillSheet({ roundNumber, meId, players, initial, busy, error, on
                   />
                   <Minus show={tips > 0} onTap={() => setTips(tips - 1)} />
                 </div>
-              </div>
+              </CardRail>
               <p className="px-1 text-[0.7rem] font-semibold text-ink/55">
                 Vinho vale pelo conjunto: 1 = 30€, 2 = 60€, 3 = 120€, 4 = 180€, 5 = 240€. Gorjeta soma a
                 tapa mais barata.

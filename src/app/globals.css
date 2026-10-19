@@ -370,3 +370,31 @@ button:disabled {
   animation: stamp-in 900ms var(--ease-snap) both;
   will-change: transform, opacity;
 }
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility soft-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(42, 27, 18, 0.22) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(42, 27, 18, 0.22);
+    border-radius: 999px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
