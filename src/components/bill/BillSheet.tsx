@@ -10,13 +10,22 @@ import { computeBill, premiumCount, splitBill } from "@/lib/game/bill";
 import { dishFor, kindLabels, kindOrder, menuFor } from "@/lib/game/menu";
 import { burntValue, cakeValue, deckLimits, wineValue } from "@/lib/game/rules";
 import { sound } from "@/lib/sound";
-import { SplitMode, type BillDraft, type BillSplit, type PlayerView, type TapaKind, type TapaPick } from "@/types/room";
+import {
+  SplitMode,
+  type BillDraft,
+  type BillShareRow,
+  type BillSplit,
+  type PlayerView,
+  type TapaKind,
+  type TapaPick,
+} from "@/types/room";
 
 interface BillSheetProps {
   roundNumber: number;
   meId: string;
   players: PlayerView[];
   initial?: BillDraft;
+  refunds?: BillShareRow[];
   busy: boolean;
   error: string | null;
   onSave: (draft: BillDraft) => void;
@@ -37,7 +46,17 @@ function tapaLabel(tapa: TapaPick): string {
   return dishFor(tapa.kind, tapa.price).name ?? `${kindLabels[tapa.kind]} ${tapa.price}€`;
 }
 
-export function BillSheet({ roundNumber, meId, players, initial, busy, error, onSave, onBack }: BillSheetProps) {
+export function BillSheet({
+  roundNumber,
+  meId,
+  players,
+  initial,
+  refunds = [],
+  busy,
+  error,
+  onSave,
+  onBack,
+}: BillSheetProps) {
   const [tapas, setTapas] = useState<TapaPick[]>(initial?.tapas ?? []);
   const [burnt, setBurnt] = useState(initial?.burnt ?? 0);
   const [burntPremium, setBurntPremium] = useState(initial?.burntPremium ?? 0);
@@ -163,12 +182,13 @@ export function BillSheet({ roundNumber, meId, players, initial, busy, error, on
               <ul className="flex flex-col gap-1 rounded-2xl bg-cream px-3 py-2 text-xs">
                 {shares.map((share) => {
                   const person = players.find((item) => item.id === share.playerId);
+                  const refund = refunds.find((item) => item.player_id === share.playerId)?.amount ?? 0;
 
                   return (
                     <li key={share.playerId} className="flex justify-between gap-2">
                       <span className="truncate">{person?.name ?? "Alguém"}</span>
                       <span className="font-semibold tabular-nums">
-                        −{share.amount}€ · fica com {(person?.savings ?? 0) - share.amount}€
+                        −{share.amount}€ · fica com {(person?.savings ?? 0) + refund - share.amount}€
                       </span>
                     </li>
                   );

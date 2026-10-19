@@ -341,7 +341,7 @@ export function CuentitaApp() {
                 void undoBill(latest);
               }
             }}
-            onNewTable={leave}
+            onNewTable={leaveForGood}
           />
         )}
       </>
@@ -393,6 +393,7 @@ export function CuentitaApp() {
           meId={me.id}
           players={state.players}
           initial={sheet.bill ? draftFromBill(sheet.bill, me.id) : undefined}
+          refunds={sheet.bill?.shares ?? []}
           busy={busy}
           error={error}
           onBack={() => setSheet(null)}

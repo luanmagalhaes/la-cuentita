@@ -52,6 +52,7 @@ export function TableScreen({
 }: TableScreenProps) {
   const [confirmingRemoval, setConfirmingRemoval] = useState<string | null>(null);
   const [confirmingUndo, setConfirmingUndo] = useState<BillView | null>(null);
+  const [confirmingLeave, setConfirmingLeave] = useState(false);
   const start = room.starting_savings ?? 1;
   const board = ranked(players);
   const latest = bills[bills.length - 1] ?? null;
@@ -126,10 +127,30 @@ export function TableScreen({
         />
       ) : null}
 
+      {confirmingLeave ? (
+        <ConfirmModal
+          title="Sair da partida?"
+          tone="danger"
+          busy={busy}
+          confirmLabel="Sair mesmo"
+          cancelLabel="Fico"
+          body={
+            <p>
+              Você sai da mesa e não consegue voltar nesta partida. O que você pagou some das contas.
+            </p>
+          }
+          onCancel={() => setConfirmingLeave(false)}
+          onConfirm={() => {
+            setConfirmingLeave(false);
+            onLeave();
+          }}
+        />
+      ) : null}
+
       <header className="mb-4 flex items-center justify-between gap-3">
         <button
           type="button"
-          onClick={onLeave}
+          onClick={() => setConfirmingLeave(true)}
           className="display rounded-xl px-2 py-1 text-base text-ink/60 transition-colors hover:text-ink"
         >
           ← Sair

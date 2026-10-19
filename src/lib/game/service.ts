@@ -144,7 +144,13 @@ export async function roomState(input: { code: string; token?: string }): Promis
 
 export async function createRoom(input: { hostName: string; emoji?: string; isTest?: boolean }) {
   const client = serverClient();
-  const code = checked(await client.rpc("lc_generate_code")) as string;
+  const generated = await client.rpc("lc_generate_code");
+
+  if (generated.error?.message.includes("LC_NO_CODES")) {
+    throw new ServiceError("Todas as salas estão ocupadas agora. Tente de novo daqui a pouco.", 503);
+  }
+
+  const code = checked(generated) as string;
   const room = checked(
     await client
       .from("lc_rooms")
