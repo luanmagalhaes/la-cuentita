@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { startingSavingsFor, startingSavingsTable, wineValue } from "@/lib/game/rules";
 
 describe("poupança inicial", () => {
-  it("segue a tabela do manual", () => {
+  it("segue a tabela por número de jogadores", () => {
     expect(startingSavingsTable()).toEqual([
       { players: 3, savings: 900 },
       { players: 4, savings: 1000 },

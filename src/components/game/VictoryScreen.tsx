@@ -109,7 +109,7 @@ export function VictoryScreen({ winners, ranked, bars, meId, canUndo, busy, onUn
 
           <p className="max-w-[32ch] text-sm font-semibold text-ink/70">
             {tie
-              ? `Terminaram com ${champion?.savings ?? 0}€ cada. Pelo manual, desempata quem tiver mais dinheiro de verdade no bolso. Abram as carteiras!`
+              ? `Terminaram com ${champion?.savings ?? 0}€ cada. Desempata quem tiver mais dinheiro de verdade no bolso. Abram as carteiras!`
               : `${cheer}. Terminou com ${champion?.savings ?? 0}€ depois de ${bars} ${bars === 1 ? "bar" : "bares"}.`}
           </p>
         </div>

@@ -28,7 +28,7 @@ const slides: Slide[] = [
     body: (
       <div className="flex flex-col gap-3 text-center text-sm leading-snug text-ink/80">
         <p>
-          Vocês jogam o La Cuenta com as cartas na mesa. O app só cuida do <Hot>dinheiro</Hot>: quanto cada um
+          Vocês jogam com as cartas na mesa. O app só cuida do <Hot>dinheiro</Hot>: quanto cada um
           tem, quanto custou cada bar e quem ganhou.
         </p>
         <p>

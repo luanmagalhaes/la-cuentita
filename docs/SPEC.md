@@ -1,9 +1,9 @@
 # La Cuentita: especificação
 
-App de mesa para o jogo de cartas físico **La Cuenta** (2Tomatoes, 2025). As cartas continuam na mesa; o app guarda a poupança de cada um, calcula a conta de cada bar do jeito certo e anuncia quem ganhou. Mesmo stack e mesmo fluxo do Flip Score (`~/projects/flip-score`), que é a base deste repositório.
+App de mesa para um jogo de cartas de bar, em que cada rodada é um bar e alguém sempre fica com a conta. As cartas continuam na mesa; o app guarda a poupança de cada um, calcula a conta de cada bar do jeito certo e anuncia quem ganhou. Mesmo stack e mesmo fluxo do Flip Score, que é a base deste repositório.
 
 Referências obrigatórias:
-- Regras e estética do jogo: `~/projects/la-cuenta/pesquisa/la-cuenta.md` e imagens em `~/projects/la-cuenta/pesquisa/img/`
+- Regras do jogo: seção 3 deste arquivo
 - Design final do app: seção "Design" no fim deste arquivo (quando existir)
 
 ## 1. Regras do dono (valem para todo código)
@@ -36,7 +36,7 @@ Next 16.3.3, React 19, TypeScript strict, Tailwind 4 (`@theme`/`@utility` em `sr
   - Sozinho: o pagador paga tudo.
   - Meio a meio: escolhe uma pessoa; ela paga a metade arredondada para baixo e o pagador o resto.
   - Cada um paga: divide entre todos menos quem estava no banheiro ou de aniversário; cada um paga a parte arredondada para baixo e o pagador absorve o resto.
-- Fim: na hora em que alguém fica com poupança ≤ 0. Vence quem tem mais poupança. Empate: todos os empatados aparecem como vencedores, com a piada do manual ("desempata quem tiver mais dinheiro de verdade no bolso").
+- Fim: na hora em que alguém fica com poupança ≤ 0. Vence quem tem mais poupança. Empate: todos os empatados aparecem como vencedores, com a piada ("desempata quem tiver mais dinheiro de verdade no bolso").
 - Limites do baralho validados no servidor: 48 tapas, 10 vinhos, 8 queimados, 4 Premium, 1 bolo, 6 gorjetas.
 
 ## 4. Modelo de dados (Supabase, prefixo `lc_`)
@@ -65,7 +65,7 @@ lc_matches        id, room_id uuid (sem FK, só referência), room_code, winner_
 - Gravação de conta e desfazer são **atômicos**, em funções Postgres com `select ... for update` na sala:
   - `lc_record_bill(room, round, payer, created_by, total, split_mode, detail, shares jsonb, replace_bill uuid null)`: valida fase e rodada (ou, se `replace_bill`, que ela é a última conta da sala), insere conta e partes, avança `round_number`, e se alguém ficou ≤ 0 fecha a partida (FINISHED, `finished_at`) e grava `lc_matches` uma vez só (pula se `is_test`).
   - `lc_undo_bill(room, bill)`: só a última conta; apaga, volta `round_number` para o bar dela e, se a partida tinha acabado, reabre (PLAYING, `finished_at` nulo) e apaga a linha de `lc_matches` da sala.
-- Migração em `supabase/migrations/0001_init.sql`, aplicada pela Management API (`curl` com o token `sbp_` de `~/projects/slip-it-in/.env.local`; `urllib` do Python leva 403 do Cloudflare).
+- Migração em `supabase/migrations/0001_init.sql`, aplicada pela Management API do Supabase com `curl` (o `urllib` do Python leva 403 do Cloudflare).
 
 ## 5. API (contrato do cliente em `src/lib/api.ts`)
 
@@ -94,11 +94,11 @@ Erros de negócio em PT-BR com status certo: conta já lançada para o bar (409)
 - Quem pediu a conta toca nas cartas que ficaram na mesa (imagens de carta desenhadas pelo app, como no Flip Score), vê o total ao vivo, escolhe como dividir e confirma.
 - A conta nova aparece em todos os celulares com a animação de zoeira do pagador, uma vez só por aparelho.
 - Quando alguém zera: animação de falência para quem quebrou e depois a do vencedor.
-- Arte própria (SVG/CSS/emoji). Nada de imagem oficial do jogo no app.
+- Arte própria (SVG/CSS/emoji). Nada de imagem de terceiros no app.
 
 ## 7. Verificação
 
 - `pnpm exec next typegen` antes do primeiro `tsc` num checkout novo.
 - `pnpm exec tsc --noEmit -p .`, `pnpm lint`, `pnpm test`, `pnpm build` sem erro.
-- Tela: rodar `pnpm exec next dev -p <porta>` e tirar screenshot em 390×844 com `playwright-core` usando o Chrome instalado (`executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"`). Há um `node_modules` com `playwright-core` pronto em `/private/tmp/claude-501/-Users-luanmagalhaes/e99ae01f-3147-4ac3-8984-d3121bd5f98f/scratchpad/pw`. Olhar as imagens com a ferramenta Read.
+- Tela: rodar `pnpm exec next dev -p <porta>` e tirar screenshot em 390×844 com `playwright-core` usando o Chrome instalado (`executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"`). Olhar as imagens com a ferramenta Read.
 - Teste em banco real: só salas de teste (user-agent sem navegador vira `is_test`), nomes "Teste A/B/C/D", e apagar as salas no fim.
