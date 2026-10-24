@@ -50,6 +50,8 @@ export interface BillDraft extends BillCards {
   roundNumber: number;
   payerId: string;
   split: BillSplit;
+  bathroomIds: string[];
+  birthdayId: string | null;
 }
 
 export interface BillBreakdown {
@@ -74,6 +76,8 @@ export interface BillDetail extends Omit<BillCards, "burnts"> {
   burnt?: number;
   burntPremium?: number;
   split: BillSplit;
+  bathroomIds?: string[];
+  birthdayId?: string | null;
   breakdown: BillBreakdown;
 }
 

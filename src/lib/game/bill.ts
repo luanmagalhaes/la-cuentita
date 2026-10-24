@@ -13,6 +13,8 @@ import {
 
 export type DraftCheck = { ok: true; draft: BillDraft } | { ok: false; error: string };
 
+type SitOuts = Pick<BillDraft, "bathroomIds" | "birthdayId">;
+
 const tapaKinds: readonly string[] = Object.values(TapaKind);
 
 export const emptyCards: BillCards = {
@@ -35,6 +37,10 @@ export function premiumCount(cards: Pick<BillCards, "tapas" | "burnts">): number
   return (
     cards.tapas.filter((tapa) => tapa.premium).length + cards.burnts.filter((burnt) => burnt.premium).length
   );
+}
+
+export function sitOutIds(sitOuts: SitOuts): string[] {
+  return [...new Set([...sitOuts.bathroomIds, ...(sitOuts.birthdayId ? [sitOuts.birthdayId] : [])])];
 }
 
 export function legacyBurnts(burnt: number | undefined, burntPremium: number | undefined): BurntPick[] {
@@ -175,7 +181,39 @@ function readBurnts(input: Record<string, unknown>): BurntPick[] | string {
   return burnts;
 }
 
-function readSplit(value: unknown, payerId: string, playerIds: readonly string[]): BillSplit | string {
+function readSitOuts(input: Record<string, unknown>, payerId: string, playerIds: readonly string[]): SitOuts | string {
+  const raw = input.bathroomIds ?? [];
+
+  if (!Array.isArray(raw)) {
+    return "A lista de quem está no banheiro veio estranha";
+  }
+
+  const bathroomIds = [...new Set(raw.map((id) => String(id)))].filter((id) => playerIds.includes(id));
+
+  if (bathroomIds.includes(payerId)) {
+    return "Quem está no banheiro não pode pedir a conta";
+  }
+
+  if (bathroomIds.length > deckLimits.bathroom) {
+    return `O baralho só tem ${deckLimits.bathroom} cartas de banheiro`;
+  }
+
+  const asked = input.cake === true ? String(input.birthdayId ?? "") : "";
+  const birthdayId = playerIds.includes(asked) ? asked : null;
+
+  if (birthdayId === payerId) {
+    return "Quem faz aniversário não pode pedir a conta";
+  }
+
+  return { bathroomIds, birthdayId };
+}
+
+function readSplit(
+  value: unknown,
+  payerId: string,
+  playerIds: readonly string[],
+  outIds: readonly string[],
+): BillSplit | string {
   const mode = String((value as { mode?: unknown })?.mode ?? SplitMode.Solo);
 
   if (mode === SplitMode.Solo) {
@@ -191,6 +229,10 @@ function readSplit(value: unknown, payerId: string, playerIds: readonly string[]
 
     if (partnerId === payerId) {
       return "Para rachar meio a meio, escolha outra pessoa";
+    }
+
+    if (outIds.includes(partnerId)) {
+      return "Quem está no banheiro ou faz aniversário não racha a conta";
     }
 
     return { mode: SplitMode.Half, partnerId };
@@ -209,7 +251,10 @@ function readSplit(value: unknown, payerId: string, playerIds: readonly string[]
       return "Quem pediu a conta não pode ficar de fora da divisão";
     }
 
-    return { mode: SplitMode.Dutch, excludedIds: asked.filter((id) => playerIds.includes(id)) };
+    return {
+      mode: SplitMode.Dutch,
+      excludedIds: [...new Set([...asked, ...outIds])].filter((id) => playerIds.includes(id)),
+    };
   }
 
   return "Esse jeito de dividir a conta não existe";
@@ -255,7 +300,13 @@ export function checkBillDraft(value: unknown, playerIds: readonly string[]): Dr
     return { ok: false, error: `O baralho só tem ${deckLimits.premium} cartas Premium` };
   }
 
-  const split = readSplit(input.split, payerId, playerIds);
+  const sitOuts = readSitOuts(input, payerId, playerIds);
+
+  if (typeof sitOuts === "string") {
+    return { ok: false, error: sitOuts };
+  }
+
+  const split = readSplit(input.split, payerId, playerIds, sitOutIds(sitOuts));
 
   if (typeof split === "string") {
     return { ok: false, error: split };
@@ -272,6 +323,8 @@ export function checkBillDraft(value: unknown, playerIds: readonly string[]): Dr
       cake: input.cake === true,
       tips,
       split,
+      bathroomIds: sitOuts.bathroomIds,
+      birthdayId: sitOuts.birthdayId,
     },
   };
 }

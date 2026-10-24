@@ -1,6 +1,6 @@
 import { maxPlayers, minPlayers } from "@/lib/game/limits";
 
-export const tapaPrices = [10, 20, 30, 40, 50, 60, 70] as const;
+export const tapaPrices = [10, 20, 30, 40, 50, 60, 70, 100] as const;
 export const burntValues = [10, 20, 50, 70] as const;
 export const cakeValue = 40;
 export const wineSetSize = 5;
@@ -15,6 +15,7 @@ export const deckLimits = {
   premium: 4,
   cake: 1,
   tips: 6,
+  bathroom: 5,
 } as const;
 
 export function startingSavingsFor(playerCount: number): number {

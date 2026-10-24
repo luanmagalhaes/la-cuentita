@@ -30,7 +30,7 @@ import {
   subscribeMatch,
   tutorialSnapshot,
 } from "@/lib/storage";
-import { RoomPhase, type BillDraft, type BillView } from "@/types/room";
+import { RoomPhase, SplitMode, type BillDraft, type BillView } from "@/types/room";
 
 type View = "HOME" | "CREATE" | "JOIN" | "HISTORY";
 
@@ -46,6 +46,9 @@ function draftFromBill(bill: BillView, fallbackPayer: string): BillDraft {
     cake: bill.detail.cake,
     tips: bill.detail.tips,
     split: bill.detail.split,
+    bathroomIds:
+      bill.detail.bathroomIds ?? (bill.detail.split.mode === SplitMode.Dutch ? bill.detail.split.excludedIds : []),
+    birthdayId: bill.detail.birthdayId ?? null,
   };
 }
 

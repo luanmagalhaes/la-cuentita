@@ -205,4 +205,45 @@ describe("conferência do rascunho", () => {
   it("recusa pagador de fora da mesa", () => {
     expect(checkBillDraft({ ...base, payerId: "z" }, people).ok).toBe(false);
   });
+
+  it("aceita tapa de 100", () => {
+    const check = checkBillDraft({ ...base, tapas: [meat(100), fish(100, true), veg(100)] }, people);
+
+    expect(check.ok).toBe(true);
+  });
+
+  it("recusa rachar meio a meio com quem está no banheiro", () => {
+    const check = checkBillDraft({ ...base, bathroomIds: ["b"], split: { mode: "HALF", partnerId: "b" } }, people);
+
+    expect(check).toEqual({ ok: false, error: "Quem está no banheiro ou faz aniversário não racha a conta" });
+  });
+
+  it("recusa rachar meio a meio com quem faz aniversário", () => {
+    const check = checkBillDraft(
+      { ...base, cake: true, birthdayId: "c", split: { mode: "HALF", partnerId: "c" } },
+      people,
+    );
+
+    expect(check.ok).toBe(false);
+  });
+
+  it("cada um paga deixa de fora quem está no banheiro e quem faz aniversário", () => {
+    const check = checkBillDraft(
+      { ...base, cake: true, birthdayId: "c", bathroomIds: ["b"], split: { mode: "DUTCH", excludedIds: [] } },
+      ["eu", "b", "c", "d"],
+    );
+
+    expect(check.ok && check.draft.split).toEqual({ mode: SplitMode.Dutch, excludedIds: ["b", "c"] });
+  });
+
+  it("quem pediu a conta não pode estar no banheiro nem fazer aniversário", () => {
+    expect(checkBillDraft({ ...base, bathroomIds: ["eu"] }, people).ok).toBe(false);
+    expect(checkBillDraft({ ...base, cake: true, birthdayId: "eu" }, people).ok).toBe(false);
+  });
+
+  it("sem bolo na mesa ninguém faz aniversário", () => {
+    const check = checkBillDraft({ ...base, birthdayId: "b" }, people);
+
+    expect(check.ok && check.draft.birthdayId).toBeNull();
+  });
 });

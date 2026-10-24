@@ -29,9 +29,9 @@ const knownDishes: Record<TapaKind, Partial<Record<number, string>>> = {
 };
 
 const dishEmoji: Record<TapaKind, Record<number, string>> = {
-  MEAT: { 10: "🌭", 20: "🍢", 30: "🧆", 40: "🍗", 50: "🥩", 60: "🥓", 70: "🍖" },
-  FISH: { 10: "🦪", 20: "🐟", 30: "🦑", 40: "🐠", 50: "🦀", 60: "🐙", 70: "🍤" },
-  VEG: { 10: "🫒", 20: "🍅", 30: "🌶️", 40: "🥔", 50: "🍄", 60: "🥗", 70: "🥘" },
+  MEAT: { 10: "🌭", 20: "🍢", 30: "🧆", 40: "🍗", 50: "🥩", 60: "🥓", 70: "🍖", 100: "🐖" },
+  FISH: { 10: "🦪", 20: "🐟", 30: "🦑", 40: "🐠", 50: "🦀", 60: "🐙", 70: "🍤", 100: "🦞" },
+  VEG: { 10: "🫒", 20: "🍅", 30: "🌶️", 40: "🥔", 50: "🍄", 60: "🥗", 70: "🥘", 100: "🫑" },
 };
 
 export function dishFor(kind: TapaKind, price: number): Dish {

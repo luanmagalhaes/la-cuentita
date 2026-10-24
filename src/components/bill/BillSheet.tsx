@@ -6,7 +6,7 @@ import { TableCard } from "@/components/cards/TableCard";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { computeBill, premiumCount, splitBill } from "@/lib/game/bill";
+import { computeBill, premiumCount, sitOutIds, splitBill } from "@/lib/game/bill";
 import { dishFor, kindLabels, kindOrder, menuFor } from "@/lib/game/menu";
 import { burntValues, cakeValue, deckLimits, wineValue } from "@/lib/game/rules";
 import { sound } from "@/lib/sound";
@@ -39,6 +39,13 @@ const splitOptions: Array<{ mode: SplitMode; label: string; hint: string }> = [
   { mode: SplitMode.Dutch, label: "Cada um paga", hint: "Racha geral" },
 ];
 
+const sitOutReasons = {
+  bathroom: { icon: "🚽", label: "No banheiro" },
+  birthday: { icon: "🎂", label: "Aniversário" },
+} as const;
+
+type SitOutReason = (typeof sitOutReasons)[keyof typeof sitOutReasons];
+
 function euros(value: number): string {
   return `${value < 0 ? "−" : ""}${Math.abs(value)}€`;
 }
@@ -68,9 +75,9 @@ export function BillSheet({
   const [partnerId, setPartnerId] = useState<string | null>(
     initial?.split.mode === SplitMode.Half ? initial.split.partnerId : null,
   );
-  const [excludedIds, setExcludedIds] = useState<string[]>(
-    initial?.split.mode === SplitMode.Dutch ? initial.split.excludedIds : [],
-  );
+  const [bathroomIds, setBathroomIds] = useState<string[]>(initial?.bathroomIds ?? []);
+  const [birthdayId, setBirthdayId] = useState<string | null>(initial?.birthdayId ?? null);
+  const [picking, setPicking] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
   const cards = { tapas, burnts, wine, cake, tips };
@@ -78,15 +85,17 @@ export function BillSheet({
   const premiumsLeft = deckLimits.premium - premiumCount({ tapas, burnts });
   const payer = players.find((person) => person.id === payerId) ?? null;
   const others = players.filter((person) => person.id !== payerId);
-  const partnerValid = partnerId !== null && others.some((person) => person.id === partnerId);
+  const bathroom = bathroomIds.filter((id) => others.some((person) => person.id === id));
+  const birthday = cake && others.some((person) => person.id === birthdayId) ? birthdayId : null;
+  const outIds = sitOutIds({ bathroomIds: bathroom, birthdayId: birthday });
+  const reasonFor = (id: string): SitOutReason | null =>
+    birthday === id ? sitOutReasons.birthday : bathroom.includes(id) ? sitOutReasons.bathroom : null;
+  const partner = others.find((person) => person.id === partnerId && !outIds.includes(person.id)) ?? null;
   const split: BillSplit =
-    mode === SplitMode.Half && partnerValid && partnerId
-      ? { mode: SplitMode.Half, partnerId }
+    mode === SplitMode.Half && partner
+      ? { mode: SplitMode.Half, partnerId: partner.id }
       : mode === SplitMode.Dutch
-        ? {
-            mode: SplitMode.Dutch,
-            excludedIds: excludedIds.filter((id) => id !== payerId && players.some((person) => person.id === id)),
-          }
+        ? { mode: SplitMode.Dutch, excludedIds: outIds }
         : { mode: SplitMode.Solo };
   const shares = splitBill({
     total: breakdown.total,
@@ -94,7 +103,12 @@ export function BillSheet({
     payerId,
     playerIds: players.map((person) => person.id),
   });
-  const ready = mode !== SplitMode.Half || partnerValid;
+  const blocker =
+    mode === SplitMode.Half && !partner
+      ? "Escolha com quem rachar"
+      : cake && !birthday && others.length > 0
+        ? "Diga de quem é o aniversário"
+        : null;
   const counts = useMemo(() => {
     const tally = new Map<string, number>();
 
@@ -168,17 +182,38 @@ export function BillSheet({
     setBurnts((current) => current.filter((_, at) => at !== index));
   };
 
-  const toggleExcluded = (id: string) => {
+  const toggleBathroom = (id: string) => {
+    if (!bathroom.includes(id) && bathroom.length >= deckLimits.bathroom) {
+      return;
+    }
+
     sound.tap();
-    setExcludedIds((current) =>
+    setBathroomIds((current) =>
       current.includes(id) ? current.filter((kept) => kept !== id) : [...current, id],
     );
   };
 
-  const draft: BillDraft = { roundNumber, payerId, split, ...cards };
+  const pickPartner = (id: string) => {
+    sound.tap();
+    setPartnerId(id);
+    setMode(SplitMode.Half);
+    setPicking(false);
+  };
+
+  const draft: BillDraft = { roundNumber, payerId, split, bathroomIds: bathroom, birthdayId: birthday, ...cards };
 
   return (
     <>
+      {picking ? (
+        <PartnerPicker
+          people={others}
+          partnerId={partner?.id ?? null}
+          reasonFor={reasonFor}
+          onPick={pickPartner}
+          onCancel={() => setPicking(false)}
+        />
+      ) : null}
+
       {confirming ? (
         <ConfirmModal
           title={`Fechar a conta do bar ${roundNumber}?`}
@@ -421,6 +456,54 @@ export function BillSheet({
               )}
             </section>
 
+            {others.length > 0 ? (
+              <section className="mt-4">
+                <h3 className="display mb-1.5 px-1 text-sm uppercase tracking-[0.14em] text-ink/60">
+                  Quem não paga
+                </h3>
+                <div className="rounded-2xl bg-cream p-2">
+                  <p className="mb-1.5 px-1 text-xs font-semibold text-ink/70">
+                    {sitOutReasons.bathroom.icon} Quem está no banheiro?
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {others.map((person) => (
+                      <PersonToggle
+                        key={person.id}
+                        person={person}
+                        active={bathroom.includes(person.id)}
+                        onTap={() => toggleBathroom(person.id)}
+                      />
+                    ))}
+                  </div>
+                  {cake ? (
+                    <>
+                      <p
+                        className={`mb-1.5 mt-3 px-1 text-xs font-semibold ${birthday ? "text-ink/70" : "text-flame"}`}
+                      >
+                        {sitOutReasons.birthday.icon} De quem é o aniversário?
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {others.map((person) => (
+                          <PersonToggle
+                            key={person.id}
+                            person={person}
+                            active={birthday === person.id}
+                            onTap={() => {
+                              sound.tap();
+                              setBirthdayId(person.id);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  ) : null}
+                  <p className="mt-2 px-1 text-[0.7rem] font-semibold text-ink/55">
+                    Quem está no banheiro ou faz aniversário não paga nem racha a conta.
+                  </p>
+                </div>
+              </section>
+            ) : null}
+
             <section className="mt-4">
               <h3 className="display mb-1.5 px-1 text-sm uppercase tracking-[0.14em] text-ink/60">
                 Como vai pagar
@@ -432,6 +515,12 @@ export function BillSheet({
                     type="button"
                     onClick={() => {
                       sound.tap();
+
+                      if (option.mode === SplitMode.Half) {
+                        setPicking(true);
+                        return;
+                      }
+
                       setMode(option.mode);
                     }}
                     aria-pressed={mode === option.mode}
@@ -446,38 +535,39 @@ export function BillSheet({
               </div>
 
               {mode === SplitMode.Half ? (
-                <div className="mt-2 rounded-2xl bg-cream p-2">
-                  <p className="mb-1.5 px-1 text-xs font-semibold text-ink/70">Rachar com quem?</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {others.map((person) => (
-                      <PersonToggle
-                        key={person.id}
-                        person={person}
-                        active={partnerId === person.id}
-                        onTap={() => {
-                          sound.tap();
-                          setPartnerId(person.id);
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.tap();
+                    setPicking(true);
+                  }}
+                  className="mt-2 flex w-full items-center gap-3 rounded-2xl bg-cream p-2 text-left"
+                >
+                  {partner ? (
+                    <>
+                      <Avatar name={partner.name} photo={partner.avatar} emoji={partner.emoji} size="md" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-xs font-semibold text-ink/60">Rachando com</span>
+                        <span className="display block truncate text-lg leading-tight text-ink">{partner.name}</span>
+                      </span>
+                    </>
+                  ) : (
+                    <span className="min-w-0 flex-1 px-1 text-sm font-semibold text-flame">
+                      Escolha com quem rachar
+                    </span>
+                  )}
+                  <span className="display shrink-0 rounded-xl border-2 border-ink bg-paper px-3 py-1 text-sm text-ink">
+                    {partner ? "Trocar" : "Escolher"}
+                  </span>
+                </button>
               ) : null}
 
               {mode === SplitMode.Dutch ? (
                 <div className="mt-2 rounded-2xl bg-cream p-2">
-                  <p className="mb-1.5 px-1 text-xs font-semibold text-ink/70">
-                    Toque em quem fica de fora (banheiro ou aniversário)
-                  </p>
+                  <p className="mb-1.5 px-1 text-xs font-semibold text-ink/70">Quem racha a conta</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {others.map((person) => (
-                      <PersonToggle
-                        key={person.id}
-                        person={person}
-                        active={!excludedIds.includes(person.id)}
-                        crossed={excludedIds.includes(person.id)}
-                        onTap={() => toggleExcluded(person.id)}
-                      />
+                    {players.map((person) => (
+                      <PersonTag key={person.id} person={person} reason={reasonFor(person.id)} />
                     ))}
                   </div>
                 </div>
@@ -496,12 +586,13 @@ export function BillSheet({
             </div>
             <div className="mt-1 flex items-end justify-between gap-3">
               <div className="min-w-0">
-                <span className="block text-xs font-semibold text-ink/60">
-                  {split.mode === SplitMode.Solo
-                    ? `${payer?.id === meId ? "Você paga" : `${payer?.name ?? "Alguém"} paga`}`
-                    : shares.length === 1
-                      ? "Só uma pessoa paga"
-                      : `${shares.length} pessoas dividem`}
+                <span className={`block text-xs font-semibold ${blocker ? "text-flame" : "text-ink/60"}`}>
+                  {blocker ??
+                    (split.mode === SplitMode.Solo
+                      ? `${payer?.id === meId ? "Você paga" : `${payer?.name ?? "Alguém"} paga`}`
+                      : shares.length === 1
+                        ? "Só uma pessoa paga"
+                        : `${shares.length} pessoas dividem`)}
                 </span>
                 <span key={breakdown.total} className="display animate-score-bump block text-4xl leading-none text-flame">
                   {euros(breakdown.total)}
@@ -510,7 +601,7 @@ export function BillSheet({
               <Button
                 variant="ink"
                 size="lg"
-                disabled={busy || !ready}
+                disabled={busy || blocker !== null}
                 onClick={() => setConfirming(true)}
               >
                 {busy ? "Salvando..." : "Fechar a conta"}
@@ -559,17 +650,7 @@ function Chip({ active, onTap, label }: { active: boolean; onTap: () => void; la
   );
 }
 
-function PersonToggle({
-  person,
-  active,
-  crossed = false,
-  onTap,
-}: {
-  person: PlayerView;
-  active: boolean;
-  crossed?: boolean;
-  onTap: () => void;
-}) {
+function PersonToggle({ person, active, onTap }: { person: PlayerView; active: boolean; onTap: () => void }) {
   return (
     <button
       type="button"
@@ -577,10 +658,99 @@ function PersonToggle({
       aria-pressed={active}
       className={`flex items-center gap-1.5 rounded-full border-2 py-0.5 pl-0.5 pr-2.5 text-xs font-semibold ${
         active ? "border-ink bg-gold" : "border-ink/30 bg-paper"
-      } ${crossed ? "line-through opacity-60" : ""}`}
+      }`}
     >
       <Avatar name={person.name} photo={person.avatar} emoji={person.emoji} size="sm" />
       {person.name}
     </button>
+  );
+}
+
+function PersonTag({ person, reason }: { person: PlayerView; reason: SitOutReason | null }) {
+  return (
+    <span
+      className={`flex items-center gap-1.5 rounded-full border-2 py-0.5 pl-0.5 pr-2.5 text-xs font-semibold ${
+        reason ? "border-ink/30 bg-paper opacity-60" : "border-ink bg-gold"
+      }`}
+    >
+      <Avatar name={person.name} photo={person.avatar} emoji={person.emoji} size="sm" />
+      <span className={reason ? "line-through" : ""}>{person.name}</span>
+      {reason ? <span aria-label={reason.label}>{reason.icon}</span> : null}
+    </span>
+  );
+}
+
+function PartnerPicker({
+  people,
+  partnerId,
+  reasonFor,
+  onPick,
+  onCancel,
+}: {
+  people: PlayerView[];
+  partnerId: string | null;
+  reasonFor: (id: string) => SitOutReason | null;
+  onPick: (id: string) => void;
+  onCancel: () => void;
+}) {
+  const nobody = people.every((person) => reasonFor(person.id) !== null);
+
+  return (
+    <div className="fixed inset-0 z-[58] flex items-end justify-center bg-ink/75 p-3 sm:items-center sm:p-4">
+      <div className="animate-card-pop flex max-h-[calc(100dvh-2rem)] w-full max-w-sm flex-col overflow-hidden rounded-[1.75rem] border-4 border-ink bg-paper shadow-[0_14px_0_var(--color-ink)]">
+        <div className="shrink-0 bg-teal px-5 py-4 text-paper">
+          <span className="display block text-xl leading-tight">Rachar com quem?</span>
+          <span className="block text-xs font-semibold opacity-80">Quem você tocar paga metade da conta</span>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          {nobody ? (
+            <p className="mb-3 text-sm text-ink/75">
+              Ninguém pode rachar agora: quem sobrou está no banheiro ou faz aniversário.
+            </p>
+          ) : null}
+          <div className="grid grid-cols-2 gap-2">
+            {people.map((person) => {
+              const reason = reasonFor(person.id);
+
+              return (
+                <button
+                  key={person.id}
+                  type="button"
+                  disabled={reason !== null}
+                  onClick={() => onPick(person.id)}
+                  aria-pressed={partnerId === person.id}
+                  className={`flex min-w-0 flex-col items-center gap-1.5 rounded-2xl border-2 px-2 py-3 transition-transform ${
+                    reason
+                      ? "border-ink/20 bg-cream opacity-55"
+                      : partnerId === person.id
+                        ? "border-ink bg-gold active:scale-95"
+                        : "border-ink bg-paper active:scale-95"
+                  }`}
+                >
+                  <Avatar name={person.name} photo={person.avatar} emoji={person.emoji} size="lg" />
+                  <span className="display max-w-full truncate text-base leading-tight text-ink">{person.name}</span>
+                  {reason ? (
+                    <span className="text-[0.7rem] font-semibold text-ink/70">
+                      {reason.icon} {reason.label}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="shrink-0 border-t-2 border-ink/10 px-5 pb-5 pt-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="display w-full cursor-pointer rounded-xl px-3 py-2 text-sm text-ink/55 transition-colors hover:text-ink"
+          >
+            Voltar
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
