@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Screen } from "@/components/ui/Screen";
 import { Wordmark } from "@/components/ui/Wordmark";
+import { ZoomablePhoto } from "@/components/ui/ZoomablePhoto";
 import { ranked } from "@/lib/game/standings";
 import { SplitMode, type BillView, type PlayerView, type RoomRow } from "@/types/room";
 
@@ -77,7 +77,7 @@ export function TableScreen({
       footer={
         <div className="flex flex-col gap-2">
           <Button variant="flame" size="lg" fullWidth disabled={busy} onClick={onLaunchBill}>
-            Vou ter que pagar essa la ela de conta · Bar {room.round_number}
+            Vou ter que pagar essa conta · Bar {room.round_number}
           </Button>
           <p className="text-center text-xs font-semibold text-ink/55">
             Quem pediu a conta toca aqui e marca as cartas da mesa
@@ -203,7 +203,7 @@ export function TableScreen({
                   <span className="display flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-ink text-sm text-paper">
                     {index + 1}
                   </span>
-                  <Avatar name={person.name} photo={person.avatar} emoji={person.emoji} size="md" />
+                  <ZoomablePhoto name={person.name} photo={person.avatar} emoji={person.emoji} size="md" />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
                       <span className="display truncate text-lg text-ink">{person.name}</span>

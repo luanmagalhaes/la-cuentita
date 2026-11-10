@@ -1,14 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { PhotoCropper } from "@/components/ui/PhotoCropper";
 import { Screen } from "@/components/ui/Screen";
 import { Wordmark } from "@/components/ui/Wordmark";
+import { ZoomablePhoto } from "@/components/ui/ZoomablePhoto";
 import { faces } from "@/data/faces";
 import { minPlayers, maxPlayers } from "@/lib/game/limits";
-import { shrinkToBlob } from "@/lib/photo";
 import { startingSavingsFor } from "@/lib/game/rules";
 import type { PlayerRow, RoomRow } from "@/types/room";
 
@@ -44,6 +44,7 @@ export function LobbyScreen({
   const [confirmingRemoval, setConfirmingRemoval] = useState<string | null>(null);
   const pendingRemoval = players.find((person) => person.id === confirmingRemoval) ?? null;
   const [photoTrouble, setPhotoTrouble] = useState<string | null>(null);
+  const [cropping, setCropping] = useState<File | null>(null);
   const picker = useRef<HTMLInputElement>(null);
   const enough = players.length >= minPlayers;
   const me = players.find((person) => person.id === meId) ?? null;
@@ -59,18 +60,13 @@ export function LobbyScreen({
     }
   };
 
-  const pickPhoto = async (file: File | undefined) => {
+  const pickPhoto = (file: File | undefined) => {
     if (!file) {
       return;
     }
 
     setPhotoTrouble(null);
-
-    try {
-      onPhoto(await shrinkToBlob(file));
-    } catch {
-      setPhotoTrouble("Não consegui usar essa foto. Tente outra.");
-    }
+    setCropping(file);
   };
 
   return (
@@ -98,6 +94,18 @@ export function LobbyScreen({
         )
       }
     >
+      {cropping ? (
+        <PhotoCropper
+          file={cropping}
+          busy={busy}
+          onCancel={() => setCropping(null)}
+          onDone={(photo) => {
+            setCropping(null);
+            onPhoto(photo);
+          }}
+        />
+      ) : null}
+
       {confirmingStart ? (
         <ConfirmModal
           title="Começar a partida?"
@@ -190,7 +198,7 @@ export function LobbyScreen({
                   Escolha um emoji ou mande uma foto
                 </p>
               </div>
-              <Avatar name={me?.name ?? "?"} photo={me?.avatar ?? null} emoji={me?.emoji ?? null} size="lg" />
+              <ZoomablePhoto name={me?.name ?? "?"} photo={me?.avatar ?? null} emoji={me?.emoji ?? null} size="lg" />
             </div>
 
             <div className="grid grid-cols-8 gap-1.5">
@@ -216,7 +224,7 @@ export function LobbyScreen({
               accept="image/*"
               className="hidden"
               onChange={(event) => {
-                void pickPhoto(event.target.files?.[0]);
+                pickPhoto(event.target.files?.[0]);
                 event.target.value = "";
               }}
             />
@@ -248,7 +256,7 @@ export function LobbyScreen({
                 className="animate-rise-in flex items-center gap-3 rounded-2xl border-2 border-ink bg-paper p-3"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <Avatar name={person.name} photo={person.avatar} emoji={person.emoji} size="md" />
+                <ZoomablePhoto name={person.name} photo={person.avatar} emoji={person.emoji} size="md" />
                 <span className="display min-w-0 flex-1 truncate text-ink">
                   {person.name}
                   {person.id === meId ? " (você)" : ""}
