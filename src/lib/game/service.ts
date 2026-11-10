@@ -439,3 +439,15 @@ export async function leaveRoom(input: { code: string; token: string }) {
 }
 
 export { ServiceError };
+
+export const staleMatchHours = 5;
+
+export async function closeStaleMatches(): Promise<string[]> {
+  const { data, error } = await serverClient().rpc("lc_close_stale", { p_hours: staleMatchHours });
+
+  if (error) {
+    throw databaseError(error);
+  }
+
+  return (data as string[] | null) ?? [];
+}

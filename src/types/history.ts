@@ -3,6 +3,8 @@ export interface MatchPlayer {
   savings: number;
 }
 
+export type MatchEnding = "target" | "timeout";
+
 export interface MatchRow {
   id: string;
   room_code: string;
@@ -10,6 +12,7 @@ export interface MatchRow {
   players: MatchPlayer[];
   bars: number;
   starting_savings: number;
+  closed_by: MatchEnding;
   finished_at: string;
 }
 
