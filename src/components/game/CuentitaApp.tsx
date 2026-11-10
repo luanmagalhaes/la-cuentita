@@ -48,6 +48,7 @@ function draftFromBill(bill: BillView, fallbackPayer: string): BillDraft {
     split: bill.detail.split,
     bathroomIds:
       bill.detail.bathroomIds ?? (bill.detail.split.mode === SplitMode.Dutch ? bill.detail.split.excludedIds : []),
+    coffeeIds: bill.detail.coffeeIds ?? [],
     birthdayId: bill.detail.birthdayId ?? null,
   };
 }
@@ -280,7 +281,7 @@ export function CuentitaApp() {
         message={
           state.room.phase === RoomPhase.Lobby
             ? `Quem abriu a sala tirou você, ou o código ${state.room.code} já é de outra sala. Para entrar, use o código de novo.`
-            : `Quem abriu a sala tirou você, ou o código ${state.room.code} já é de outra partida. Como ela já começou, não dá para entrar nela.`
+            : `Quem abriu a sala tirou você, ou o código ${state.room.code} já é de outra partida. A mesa ainda aceita gente nova: use o código ${state.room.code} para sentar de novo.`
         }
         onHome={leaveForGood}
       />

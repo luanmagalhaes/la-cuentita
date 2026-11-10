@@ -10,12 +10,16 @@ describe("poupança inicial", () => {
       { players: 6, savings: 1200 },
       { players: 7, savings: 1300 },
       { players: 8, savings: 1400 },
+      { players: 9, savings: 1500 },
+      { players: 10, savings: 1600 },
+      { players: 11, savings: 1700 },
+      { players: 12, savings: 1800 },
     ]);
   });
 
-  it("não sai da faixa de 3 a 8 jogadores", () => {
+  it("não sai da faixa de 3 a 12 jogadores", () => {
     expect(startingSavingsFor(2)).toBe(900);
-    expect(startingSavingsFor(11)).toBe(1400);
+    expect(startingSavingsFor(15)).toBe(1800);
   });
 });
 

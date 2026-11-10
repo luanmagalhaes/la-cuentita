@@ -189,7 +189,7 @@ describe("conferência do rascunho", () => {
   });
 
   it("recusa queimado com valor que não existe", () => {
-    expect(checkBillDraft({ ...base, burnts: [{ value: 30, premium: false }] }, people).ok).toBe(false);
+    expect(checkBillDraft({ ...base, burnts: [{ value: 35, premium: false }] }, people).ok).toBe(false);
   });
 
   it("aceita o formato antigo de queimado como cartas de 10", () => {

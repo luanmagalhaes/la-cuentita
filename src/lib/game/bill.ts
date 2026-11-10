@@ -13,7 +13,7 @@ import {
 
 export type DraftCheck = { ok: true; draft: BillDraft } | { ok: false; error: string };
 
-type SitOuts = Pick<BillDraft, "bathroomIds" | "birthdayId">;
+type SitOuts = Pick<BillDraft, "bathroomIds" | "coffeeIds" | "birthdayId">;
 
 const tapaKinds: readonly string[] = Object.values(TapaKind);
 
@@ -40,7 +40,13 @@ export function premiumCount(cards: Pick<BillCards, "tapas" | "burnts">): number
 }
 
 export function sitOutIds(sitOuts: SitOuts): string[] {
-  return [...new Set([...sitOuts.bathroomIds, ...(sitOuts.birthdayId ? [sitOuts.birthdayId] : [])])];
+  return [
+    ...new Set([
+      ...sitOuts.bathroomIds,
+      ...sitOuts.coffeeIds,
+      ...(sitOuts.birthdayId ? [sitOuts.birthdayId] : []),
+    ]),
+  ];
 }
 
 export function legacyBurnts(burnt: number | undefined, burntPremium: number | undefined): BurntPick[] {
@@ -198,6 +204,22 @@ function readSitOuts(input: Record<string, unknown>, payerId: string, playerIds:
     return `O baralho só tem ${deckLimits.bathroom} cartas de banheiro`;
   }
 
+  const rawCoffee = input.coffeeIds ?? [];
+
+  if (!Array.isArray(rawCoffee)) {
+    return "A lista de quem foi tomar café veio estranha";
+  }
+
+  const coffeeIds = [...new Set(rawCoffee.map((id) => String(id)))].filter((id) => playerIds.includes(id));
+
+  if (coffeeIds.includes(payerId)) {
+    return "Quem foi tomar café não pode pedir a conta";
+  }
+
+  if (coffeeIds.length > deckLimits.coffee) {
+    return `O baralho só tem ${deckLimits.coffee} cartas de café`;
+  }
+
   const asked = input.cake === true ? String(input.birthdayId ?? "") : "";
   const birthdayId = playerIds.includes(asked) ? asked : null;
 
@@ -205,7 +227,7 @@ function readSitOuts(input: Record<string, unknown>, payerId: string, playerIds:
     return "Quem faz aniversário não pode pedir a conta";
   }
 
-  return { bathroomIds, birthdayId };
+  return { bathroomIds, coffeeIds, birthdayId };
 }
 
 function readSplit(
@@ -324,6 +346,7 @@ export function checkBillDraft(value: unknown, playerIds: readonly string[]): Dr
       tips,
       split,
       bathroomIds: sitOuts.bathroomIds,
+      coffeeIds: sitOuts.coffeeIds,
       birthdayId: sitOuts.birthdayId,
     },
   };

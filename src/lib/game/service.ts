@@ -171,8 +171,8 @@ export async function joinRoom(input: { code: string; name: string; emoji?: stri
   const client = serverClient();
   const room = await loadRoom(input.code);
 
-  if (room.phase !== RoomPhase.Lobby) {
-    throw new ServiceError("Essa partida já começou", 409);
+  if (room.phase === RoomPhase.Finished) {
+    throw new ServiceError("Essa partida já acabou", 409);
   }
 
   const people = await roster(room.id);
@@ -327,6 +327,7 @@ async function writeBill(input: { code: string; token: string; body: unknown; re
     tips: draft.tips,
     split: draft.split,
     bathroomIds: draft.bathroomIds,
+    coffeeIds: draft.coffeeIds,
     birthdayId: draft.birthdayId,
     breakdown,
   };

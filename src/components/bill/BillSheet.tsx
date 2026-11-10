@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { CardRail } from "@/components/cards/CardRail";
 import { TableCard } from "@/components/cards/TableCard";
+import { Balloons } from "@/components/fx/Balloons";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
@@ -41,6 +42,7 @@ const splitOptions: Array<{ mode: SplitMode; label: string; hint: string }> = [
 
 const sitOutReasons = {
   bathroom: { icon: "🚽", label: "No banheiro" },
+  coffee: { icon: "☕", label: "Tomando café" },
   birthday: { icon: "🎂", label: "Aniversário" },
 } as const;
 
@@ -52,6 +54,14 @@ function euros(value: number): string {
 
 function tapaLabel(tapa: TapaPick): string {
   return dishFor(tapa.kind, tapa.price).name ?? `${kindLabels[tapa.kind]} ${tapa.price}€`;
+}
+
+function burntName(value: number): string {
+  return value === 0 ? "prato queimado de 0 euro" : `prato queimado de menos ${value} euros`;
+}
+
+function withCount(base: string, count: number): string {
+  return count > 0 ? `${base}, ${count} na conta` : base;
 }
 
 export function BillSheet({
@@ -76,9 +86,12 @@ export function BillSheet({
     initial?.split.mode === SplitMode.Half ? initial.split.partnerId : null,
   );
   const [bathroomIds, setBathroomIds] = useState<string[]>(initial?.bathroomIds ?? []);
+  const [coffeeIds, setCoffeeIds] = useState<string[]>(initial?.coffeeIds ?? []);
   const [birthdayId, setBirthdayId] = useState<string | null>(initial?.birthdayId ?? null);
   const [picking, setPicking] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [checklist, setChecklist] = useState<null | { step: number; full: boolean }>(null);
+  const [birthdayBurst, setBirthdayBurst] = useState(0);
 
   const cards = { tapas, burnts, wine, cake, tips };
   const breakdown = computeBill(cards);
@@ -86,11 +99,21 @@ export function BillSheet({
   const payer = players.find((person) => person.id === payerId) ?? null;
   const others = players.filter((person) => person.id !== payerId);
   const bathroom = bathroomIds.filter((id) => others.some((person) => person.id === id));
+  const coffee = coffeeIds.filter(
+    (id) => others.some((person) => person.id === id) && !bathroom.includes(id),
+  );
   const birthday = cake && others.some((person) => person.id === birthdayId) ? birthdayId : null;
-  const outIds = sitOutIds({ bathroomIds: bathroom, birthdayId: birthday });
+  const outIds = sitOutIds({ bathroomIds: bathroom, coffeeIds: coffee, birthdayId: birthday });
   const reasonFor = (id: string): SitOutReason | null =>
-    birthday === id ? sitOutReasons.birthday : bathroom.includes(id) ? sitOutReasons.bathroom : null;
+    birthday === id
+      ? sitOutReasons.birthday
+      : bathroom.includes(id)
+        ? sitOutReasons.bathroom
+        : coffee.includes(id)
+          ? sitOutReasons.coffee
+          : null;
   const partner = others.find((person) => person.id === partnerId && !outIds.includes(person.id)) ?? null;
+  const birthdayPerson = others.find((person) => person.id === birthday) ?? null;
   const split: BillSplit =
     mode === SplitMode.Half && partner
       ? { mode: SplitMode.Half, partnerId: partner.id }
@@ -134,6 +157,17 @@ export function BillSheet({
     setTapas((current) => current.filter((_, at) => at !== index));
   };
 
+  const dropTapaOf = (kind: TapaKind, price: number) => {
+    const matches = (tapa: TapaPick) => tapa.kind === kind && tapa.price === price;
+    const plain = tapas.findLastIndex((tapa) => matches(tapa) && !tapa.premium);
+    const any = tapas.findLastIndex(matches);
+    const index = plain >= 0 ? plain : any;
+
+    if (index >= 0) {
+      setTapas((current) => current.filter((_, at) => at !== index));
+    }
+  };
+
   const togglePremium = (index: number) => {
     const target = tapas[index];
 
@@ -169,7 +203,7 @@ export function BillSheet({
   const toggleBurntPremium = (index: number) => {
     const target = burnts[index];
 
-    if (!target || (!target.premium && premiumsLeft <= 0)) {
+    if (!target || target.value === 0 || (!target.premium && premiumsLeft <= 0)) {
       return;
     }
 
@@ -188,7 +222,20 @@ export function BillSheet({
     }
 
     sound.tap();
+    setCoffeeIds((current) => current.filter((kept) => kept !== id));
     setBathroomIds((current) =>
+      current.includes(id) ? current.filter((kept) => kept !== id) : [...current, id],
+    );
+  };
+
+  const toggleCoffee = (id: string) => {
+    if (!coffee.includes(id) && coffee.length >= deckLimits.coffee) {
+      return;
+    }
+
+    sound.tap();
+    setBathroomIds((current) => current.filter((kept) => kept !== id));
+    setCoffeeIds((current) =>
       current.includes(id) ? current.filter((kept) => kept !== id) : [...current, id],
     );
   };
@@ -200,10 +247,91 @@ export function BillSheet({
     setPicking(false);
   };
 
-  const draft: BillDraft = { roundNumber, payerId, split, bathroomIds: bathroom, birthdayId: birthday, ...cards };
+  const pickBirthday = (id: string) => {
+    sound.lucky();
+    setBirthdayId(id);
+    setCake(true);
+    setBathroomIds((current) => current.filter((kept) => kept !== id));
+    setCoffeeIds((current) => current.filter((kept) => kept !== id));
+    setBirthdayBurst((current) => current + 1);
+  };
+
+  const dropCake = () => {
+    setCake(false);
+    setBirthdayId(null);
+  };
+
+  const deckWarning =
+    tapas.length >= deckLimits.tapas
+      ? "Acabaram as tapas do baralho"
+      : burnts.length >= deckLimits.burnt
+        ? "Acabaram os pratos queimados do baralho"
+        : wine >= deckLimits.wine
+          ? "Acabou o vinho do baralho"
+          : tips >= deckLimits.tips
+            ? "Acabaram as gorjetas do baralho"
+            : null;
+
+  const advanceChecklist = () => {
+    if (!checklist) {
+      return;
+    }
+
+    if (checklist.full && checklist.step < 2) {
+      setChecklist({ step: checklist.step + 1, full: true });
+
+      return;
+    }
+
+    setChecklist(null);
+
+    if (checklist.full) {
+      setConfirming(true);
+    }
+  };
+
+  const backChecklist = () => {
+    if (checklist?.full && checklist.step > 0) {
+      setChecklist({ step: checklist.step - 1, full: true });
+
+      return;
+    }
+
+    setChecklist(null);
+  };
+
+  const draft: BillDraft = {
+    roundNumber,
+    payerId,
+    split,
+    bathroomIds: bathroom,
+    coffeeIds: coffee,
+    birthdayId: birthday,
+    ...cards,
+  };
 
   return (
     <>
+      {birthdayBurst > 0 ? <Balloons key={birthdayBurst} /> : null}
+
+      {checklist && others.length > 0 ? (
+        <SitOutChecklist
+          step={checklist.step}
+          full={checklist.full}
+          people={others}
+          bathroom={bathroom}
+          coffee={coffee}
+          birthdayId={birthday}
+          total={breakdown.total}
+          onToggleBathroom={toggleBathroom}
+          onToggleCoffee={toggleCoffee}
+          onPickBirthday={pickBirthday}
+          onNoBirthday={dropCake}
+          onNext={advanceChecklist}
+          onBack={backChecklist}
+        />
+      ) : null}
+
       {picking ? (
         <PartnerPicker
           people={others}
@@ -271,8 +399,12 @@ export function BillSheet({
                 <span className="display block text-2xl leading-tight text-ink">
                   {initial ? `Corrigir o bar ${roundNumber}` : `Conta do bar ${roundNumber}`}
                 </span>
-                <span className="block text-xs font-semibold text-ink/75">
-                  Toque nas cartas que ficaram na mesa
+                <span
+                  role="status"
+                  aria-live="polite"
+                  className={`block text-xs font-semibold ${deckWarning ? "text-flame" : "text-ink/75"}`}
+                >
+                  {deckWarning ?? "Toque para somar, use o −1 embaixo da carta para tirar"}
                 </span>
               </div>
               <button
@@ -313,102 +445,183 @@ export function BillSheet({
               </CardRail>
             </section>
 
-            {kindOrder.map((kind) => (
-              <section key={kind} className="mt-3">
-                <h3 className="display mb-1.5 px-1 text-sm uppercase tracking-[0.14em] text-ink/60">
-                  {kindLabels[kind]}
-                </h3>
-                <CardRail>
-                  {menuFor(kind).map((dish) => (
-                    <TableCard
-                      key={dish.price}
-                      tone={kind}
-                      corner={`${dish.price}€`}
-                      title={dish.name ?? kindLabels[kind]}
-                      art={dish.emoji}
-                      count={counts.get(`${kind}-${dish.price}`) ?? 0}
-                      onTap={() => addTapa(kind, dish.price)}
-                      label={`Somar ${dish.name ?? kindLabels[kind]} de ${dish.price} euros`}
-                    />
-                  ))}
-                </CardRail>
-              </section>
-            ))}
+            {kindOrder.map((kind) => {
+              const used = tapas.some((tapa) => tapa.kind === kind);
+
+              return (
+                <section key={kind} className="mt-3">
+                  <h3 className="display mb-1.5 px-1 text-sm uppercase tracking-[0.14em] text-ink/60">
+                    {kindLabels[kind]}
+                  </h3>
+                  <CardRail>
+                    {menuFor(kind).map((dish) => {
+                      const count = counts.get(`${kind}-${dish.price}`) ?? 0;
+                      const name = `${dish.name ?? kindLabels[kind]} de ${dish.price} euros`;
+
+                      return (
+                        <CardSlot key={dish.price}>
+                          <TableCard
+                            tone={kind}
+                            corner={`${dish.price}€`}
+                            title={dish.name ?? kindLabels[kind]}
+                            art={dish.emoji}
+                            count={count}
+                            muted={tapas.length >= deckLimits.tapas}
+                            onTap={() => addTapa(kind, dish.price)}
+                            label={withCount(`Somar ${name}`, count)}
+                          />
+                          {used ? (
+                            <RemoveButton
+                              count={count}
+                              onTap={() => dropTapaOf(kind, dish.price)}
+                              label={`Tirar ${name}, ${count} na conta`}
+                            />
+                          ) : null}
+                        </CardSlot>
+                      );
+                    })}
+                  </CardRail>
+                </section>
+              );
+            })}
 
             <section className="mt-3">
               <h3 className="display mb-1.5 px-1 text-sm uppercase tracking-[0.14em] text-ink/60">
-                Vinho e especiais
+                Prato queimado
               </h3>
               <CardRail>
-                <div className="flex shrink-0 flex-col items-center gap-1">
-                  <TableCard
-                    tone="WINE"
-                    corner={wine > 0 ? euros(wineValue(wine)) : "30€+"}
-                    title="Vino tinto"
-                    art="🍷"
-                    count={wine}
-                    onTap={() => {
-                      if (wine < deckLimits.wine) {
-                        sound.pick();
-                        setWine(wine + 1);
-                      }
-                    }}
-                  />
-                  <Minus show={wine > 0} onTap={() => setWine(wine - 1)} />
-                </div>
                 {burntValues.map((value) => {
                   const count = burnts.filter((pick) => pick.value === value).length;
 
                   return (
-                    <div key={value} className="flex shrink-0 flex-col items-center gap-1">
+                    <CardSlot key={value}>
                       <TableCard
                         tone="BURNT"
                         corner={euros(-value)}
                         title="Plato quemado"
                         art="🔥"
                         count={count}
+                        muted={burnts.length >= deckLimits.burnt}
                         onTap={() => addBurnt(value)}
-                        label={`Somar prato queimado de menos ${value} euros`}
+                        label={withCount(`Somar ${burntName(value)}`, count)}
                       />
-                      <Minus show={count > 0} onTap={() => dropBurntOf(value)} />
-                    </div>
+                      {burnts.length > 0 ? (
+                        <RemoveButton
+                          count={count}
+                          onTap={() => dropBurntOf(value)}
+                          label={`Tirar ${burntName(value)}, ${count} na conta`}
+                        />
+                      ) : null}
+                    </CardSlot>
                   );
                 })}
-                <div className="flex shrink-0 flex-col items-center gap-1">
+              </CardRail>
+              <p className="px-1 text-[0.7rem] font-semibold text-ink/55">
+                Queimado desconta da conta. O de 0€ só trava a pilha e não muda o total.
+              </p>
+            </section>
+
+            <section className="mt-3">
+              <h3 className="display mb-1.5 px-1 text-sm uppercase tracking-[0.14em] text-ink/60">
+                Vinho e gorjeta
+              </h3>
+              <CardRail>
+                <CardSlot>
                   <TableCard
-                    tone="CAKE"
-                    corner={euros(cakeValue)}
-                    title="Pastel de cumpleaños"
-                    art="🎂"
-                    count={cake ? 1 : 0}
+                    tone="WINE"
+                    corner={wine > 0 ? euros(wineValue(wine)) : "30€+"}
+                    title="Vino tinto"
+                    art="🍷"
+                    count={wine}
+                    muted={wine >= deckLimits.wine}
                     onTap={() => {
-                      sound.pick();
-                      setCake(!cake);
+                      if (wine < deckLimits.wine) {
+                        sound.pick();
+                        setWine(wine + 1);
+                      }
                     }}
+                    label={withCount("Somar vinho", wine)}
                   />
-                  <Minus show={cake} onTap={() => setCake(false)} />
-                </div>
-                <div className="flex shrink-0 flex-col items-center gap-1">
+                  {wine > 0 ? (
+                    <RemoveButton
+                      count={wine}
+                      onTap={() => setWine(wine - 1)}
+                      label={`Tirar vinho, ${wine} na conta`}
+                    />
+                  ) : null}
+                </CardSlot>
+                <CardSlot>
                   <TableCard
                     tone="TIP"
                     corner={breakdown.cheapestTapa ? `+${breakdown.cheapestTapa}€` : "+?"}
                     title="Propina"
                     art="💶"
                     count={tips}
+                    muted={tips >= deckLimits.tips}
                     onTap={() => {
                       if (tips < deckLimits.tips) {
                         sound.pick();
                         setTips(tips + 1);
                       }
                     }}
+                    label={withCount("Somar gorjeta", tips)}
                   />
-                  <Minus show={tips > 0} onTap={() => setTips(tips - 1)} />
-                </div>
+                  {tips > 0 ? (
+                    <RemoveButton
+                      count={tips}
+                      onTap={() => setTips(tips - 1)}
+                      label={`Tirar gorjeta, ${tips} na conta`}
+                    />
+                  ) : null}
+                </CardSlot>
               </CardRail>
               <p className="px-1 text-[0.7rem] font-semibold text-ink/55">
                 Vinho vale pelo conjunto: 1 = 30€, 2 = 60€, 3 = 120€, 4 = 180€, 5 = 240€. Gorjeta soma a
                 tapa mais barata.
               </p>
+            </section>
+
+            <section className="mt-3">
+              <h3 className="display mb-1.5 px-1 text-sm uppercase tracking-[0.14em] text-ink/60">
+                Bolo e aniversário
+              </h3>
+              <div className="rounded-2xl bg-cream p-2">
+                <div className="flex items-start gap-3">
+                  <CardSlot>
+                    <TableCard
+                      tone="CAKE"
+                      corner={euros(cakeValue)}
+                      title="Pastel de cumpleaños"
+                      art="🎂"
+                      count={cake ? 1 : 0}
+                      muted={cake}
+                      onTap={() => {
+                        sound.pick();
+                        setChecklist({ step: 2, full: false });
+                      }}
+                      label={cake ? "Trocar o aniversariante" : `Somar o bolo de aniversário de ${cakeValue} euros`}
+                    />
+                    {cake ? <RemoveButton count={1} onTap={dropCake} label="Tirar o bolo de aniversário" /> : null}
+                  </CardSlot>
+                  <div className="flex-1 pt-1">
+                    {birthdayPerson ? (
+                      <>
+                        <span className="block text-xs font-semibold text-ink/60">Aniversário de</span>
+                        <span className="display block truncate text-lg leading-tight text-ink">
+                          {birthdayPerson.name}
+                        </span>
+                        <span className="block text-[0.7rem] font-semibold text-ink/55">
+                          Não paga, não racha e não pede a conta.
+                        </span>
+                      </>
+                    ) : (
+                      <p className="text-xs font-semibold text-ink/60">
+                        Entrou bolo na mesa? Toque na carta e diga de quem é o aniversário.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </section>
 
             <section className="mt-4">
@@ -461,46 +674,41 @@ export function BillSheet({
                 <h3 className="display mb-1.5 px-1 text-sm uppercase tracking-[0.14em] text-ink/60">
                   Quem não paga
                 </h3>
-                <div className="rounded-2xl bg-cream p-2">
-                  <p className="mb-1.5 px-1 text-xs font-semibold text-ink/70">
-                    {sitOutReasons.bathroom.icon} Quem está no banheiro?
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {others.map((person) => (
-                      <PersonToggle
-                        key={person.id}
-                        person={person}
-                        active={bathroom.includes(person.id)}
-                        onTap={() => toggleBathroom(person.id)}
-                      />
-                    ))}
-                  </div>
-                  {cake ? (
-                    <>
-                      <p
-                        className={`mb-1.5 mt-3 px-1 text-xs font-semibold ${birthday ? "text-ink/70" : "text-flame"}`}
-                      >
-                        {sitOutReasons.birthday.icon} De quem é o aniversário?
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {others.map((person) => (
-                          <PersonToggle
-                            key={person.id}
-                            person={person}
-                            active={birthday === person.id}
-                            onTap={() => {
-                              sound.tap();
-                              setBirthdayId(person.id);
-                            }}
-                          />
-                        ))}
-                      </div>
-                    </>
-                  ) : null}
-                  <p className="mt-2 px-1 text-[0.7rem] font-semibold text-ink/55">
-                    Quem está no banheiro ou faz aniversário não paga nem racha a conta.
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.tap();
+                    setChecklist({ step: 0, full: false });
+                  }}
+                  className="flex w-full items-center gap-3 rounded-2xl bg-cream p-2 text-left"
+                >
+                  <span className="min-w-0 flex-1">
+                    {outIds.length === 0 ? (
+                      <>
+                        <span className="display block text-lg leading-tight text-ink">Todo mundo paga</span>
+                        <span className="block text-xs font-semibold text-ink/60">
+                          Alguém foi ao banheiro ou tomar café? Toque para marcar.
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="mb-1 flex flex-wrap gap-1.5">
+                          {others
+                            .filter((person) => outIds.includes(person.id))
+                            .map((person) => (
+                              <PersonTag key={person.id} person={person} reason={reasonFor(person.id)} />
+                            ))}
+                        </span>
+                        <span className="block text-[0.7rem] font-semibold text-ink/55">
+                          Quem está no banheiro, no café ou de aniversário não paga nem racha a conta.
+                        </span>
+                      </>
+                    )}
+                  </span>
+                  <span className="display shrink-0 rounded-xl border-2 border-ink bg-paper px-3 py-1 text-sm text-ink">
+                    {outIds.length === 0 ? "Marcar" : "Mudar"}
+                  </span>
+                </button>
               </section>
             ) : null}
 
@@ -602,7 +810,7 @@ export function BillSheet({
                 variant="ink"
                 size="lg"
                 disabled={busy || blocker !== null}
-                onClick={() => setConfirming(true)}
+                onClick={() => (others.length > 0 ? setChecklist({ step: 0, full: true }) : setConfirming(true))}
               >
                 {busy ? "Salvando..." : "Fechar a conta"}
               </Button>
@@ -619,7 +827,13 @@ export function BillSheet({
   );
 }
 
-function Minus({ show, onTap }: { show: boolean; onTap: () => void }) {
+function CardSlot({ children }: { children: ReactNode }) {
+  return <div className="flex w-[4.2rem] shrink-0 flex-col items-center gap-2">{children}</div>;
+}
+
+function RemoveButton({ count, onTap, label }: { count: number; onTap: () => void; label: string }) {
+  const empty = count === 0;
+
   return (
     <button
       type="button"
@@ -627,9 +841,14 @@ function Minus({ show, onTap }: { show: boolean; onTap: () => void }) {
         sound.tap();
         onTap();
       }}
-      disabled={!show}
-      aria-label="Tirar uma"
-      className={`display h-7 w-12 rounded-full border-2 border-ink bg-paper text-sm leading-none ${show ? "" : "invisible"}`}
+      disabled={empty}
+      aria-hidden={empty}
+      aria-label={empty ? undefined : label}
+      className={`display animate-rise-in h-11 w-full rounded-xl border-2 text-base leading-none ${
+        empty
+          ? "border-dashed border-ink/25 text-ink/25"
+          : "border-ink bg-paper text-ink shadow-[0_2px_0_var(--color-ink)] active:translate-y-0.5 active:bg-ink active:text-paper active:shadow-none"
+      }`}
     >
       −1
     </button>
@@ -646,22 +865,6 @@ function Chip({ active, onTap, label }: { active: boolean; onTap: () => void; la
       }`}
     >
       {label}
-    </button>
-  );
-}
-
-function PersonToggle({ person, active, onTap }: { person: PlayerView; active: boolean; onTap: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onTap}
-      aria-pressed={active}
-      className={`flex items-center gap-1.5 rounded-full border-2 py-0.5 pl-0.5 pr-2.5 text-xs font-semibold ${
-        active ? "border-ink bg-gold" : "border-ink/30 bg-paper"
-      }`}
-    >
-      <Avatar name={person.name} photo={person.avatar} emoji={person.emoji} size="sm" />
-      {person.name}
     </button>
   );
 }
@@ -748,6 +951,139 @@ function PartnerPicker({
             className="display w-full cursor-pointer rounded-xl px-3 py-2 text-sm text-ink/55 transition-colors hover:text-ink"
           >
             Voltar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SitOutChecklist({
+  step,
+  full,
+  people,
+  bathroom,
+  coffee,
+  birthdayId,
+  total,
+  onToggleBathroom,
+  onToggleCoffee,
+  onPickBirthday,
+  onNoBirthday,
+  onNext,
+  onBack,
+}: {
+  step: number;
+  full: boolean;
+  people: PlayerView[];
+  bathroom: string[];
+  coffee: string[];
+  birthdayId: string | null;
+  total: number;
+  onToggleBathroom: (id: string) => void;
+  onToggleCoffee: (id: string) => void;
+  onPickBirthday: (id: string) => void;
+  onNoBirthday: () => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  const steps = [
+    {
+      icon: sitOutReasons.coffee.icon,
+      title: "Alguém foi tomar um café?",
+      hint: "Quem está no café não paga nem racha esta conta",
+      note: "Toque em quem saiu da mesa para o cafezinho. Se ninguém saiu, é só seguir.",
+      chosen: coffee,
+      onTap: onToggleCoffee,
+    },
+    {
+      icon: sitOutReasons.bathroom.icon,
+      title: "Alguém está no banheiro?",
+      hint: "Quem está no banheiro não paga nem racha esta conta",
+      note: "Toque em quem está no banheiro. Se ninguém está, é só seguir.",
+      chosen: bathroom,
+      onTap: onToggleBathroom,
+    },
+    {
+      icon: sitOutReasons.birthday.icon,
+      title: "É aniversário de alguém?",
+      hint: "Quem faz aniversário não paga, e o bolo entra na conta",
+      note: `Escolher o aniversariante põe a carta do bolo na conta: +${cakeValue}€.`,
+      chosen: birthdayId ? [birthdayId] : [],
+      onTap: onPickBirthday,
+    },
+  ];
+
+  const current = steps[Math.min(step, steps.length - 1)];
+  const birthdayStep = step === 2;
+
+  return (
+    <div className="fixed inset-0 z-[58] flex items-end justify-center bg-ink/75 p-3 sm:items-center sm:p-4">
+      <div className="animate-card-pop flex max-h-[calc(100dvh-2rem)] w-full max-w-sm flex-col overflow-hidden rounded-[1.75rem] border-4 border-ink bg-paper shadow-[0_14px_0_var(--color-ink)]">
+        <div className="shrink-0 bg-teal px-5 py-4 text-paper">
+          {full ? (
+            <span className="mb-1 flex gap-1.5">
+              {steps.map((item, index) => (
+                <span
+                  key={item.title}
+                  className={`h-1.5 flex-1 rounded-full ${index <= step ? "bg-paper" : "bg-paper/35"}`}
+                />
+              ))}
+            </span>
+          ) : null}
+          <span className="display block text-xl leading-tight">
+            {current.icon} {current.title}
+          </span>
+          <span className="block text-xs font-semibold opacity-80">{current.hint}</span>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          <p className="mb-3 text-xs font-semibold text-ink/60">{current.note}</p>
+          <div className="grid grid-cols-2 gap-2">
+            {people.map((person) => {
+              const active = current.chosen.includes(person.id);
+
+              return (
+                <button
+                  key={person.id}
+                  type="button"
+                  onClick={() => current.onTap(person.id)}
+                  aria-pressed={active}
+                  className={`flex min-w-0 flex-col items-center gap-1.5 rounded-2xl border-2 px-2 py-3 transition-transform active:scale-95 ${
+                    active ? "border-ink bg-gold" : "border-ink bg-paper"
+                  }`}
+                >
+                  <Avatar name={person.name} photo={person.avatar} emoji={person.emoji} size="lg" />
+                  <span className="display max-w-full truncate text-base leading-tight text-ink">{person.name}</span>
+                  <span className="text-[0.7rem] font-semibold text-ink/60">
+                    {active ? `${current.icon} marcado` : "toca para marcar"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {birthdayStep && birthdayId ? (
+            <button
+              type="button"
+              onClick={onNoBirthday}
+              className="mt-3 w-full rounded-2xl border-2 border-dashed border-ink/30 px-3 py-2 text-xs font-semibold text-ink/60"
+            >
+              Ninguém faz aniversário hoje, tira o bolo da conta
+            </button>
+          ) : null}
+        </div>
+
+        <div className="shrink-0 border-t-2 border-ink/10 px-5 pb-5 pt-3">
+          <Button variant="ink" size="lg" fullWidth onClick={onNext}>
+            {full && step < 2 ? "Seguir" : full ? `Fechar a conta · ${euros(total)}` : "Pronto"}
+          </Button>
+          <button
+            type="button"
+            onClick={onBack}
+            className="display mt-1 w-full cursor-pointer rounded-xl px-3 py-2 text-sm text-ink/55 transition-colors hover:text-ink"
+          >
+            {full && step > 0 ? "Voltar" : "Cancelar"}
           </button>
         </div>
       </div>
