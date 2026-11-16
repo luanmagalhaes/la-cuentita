@@ -48,7 +48,6 @@ function draftFromBill(bill: BillView, fallbackPayer: string): BillDraft {
     split: bill.detail.split,
     bathroomIds:
       bill.detail.bathroomIds ?? (bill.detail.split.mode === SplitMode.Dutch ? bill.detail.split.excludedIds : []),
-    coffeeIds: bill.detail.coffeeIds ?? [],
     birthdayId: bill.detail.birthdayId ?? null,
   };
 }

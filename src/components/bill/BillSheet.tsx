@@ -58,9 +58,10 @@ function nameList(people: readonly PlayerView[], ids: readonly string[]): string
   return `${names.slice(0, -1).join(", ")} e ${names[names.length - 1]}`;
 }
 
+const sitOutStepCount = 2;
+
 const sitOutReasons = {
   bathroom: { icon: "🚽", label: "No banheiro" },
-  coffee: { icon: "☕", label: "Pediu café" },
   birthday: { icon: "🎂", label: "Aniversário" },
 } as const;
 
@@ -104,7 +105,6 @@ export function BillSheet({
     initial?.split.mode === SplitMode.Half ? initial.split.partnerId : null,
   );
   const [bathroomIds, setBathroomIds] = useState<string[]>(initial?.bathroomIds ?? []);
-  const [coffeeIds, setCoffeeIds] = useState<string[]>(initial?.coffeeIds ?? []);
   const [birthdayId, setBirthdayId] = useState<string | null>(initial?.birthdayId ?? null);
   const [picking, setPicking] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -118,12 +118,8 @@ export function BillSheet({
   const payer = players.find((person) => person.id === payerId) ?? null;
   const others = players.filter((person) => person.id !== payerId);
   const bathroom = bathroomIds.filter((id) => others.some((person) => person.id === id));
-  const coffee = coffeeIds.filter(
-    (id) => others.some((person) => person.id === id) && !bathroom.includes(id),
-  );
   const birthday = cake && others.some((person) => person.id === birthdayId) ? birthdayId : null;
-  const outIds = sitOutIds({ bathroomIds: bathroom, coffeeIds: coffee, birthdayId: birthday });
-  const coffeePayers = coffee.filter((id) => !outIds.includes(id));
+  const outIds = sitOutIds({ bathroomIds: bathroom, birthdayId: birthday });
   const reasonFor = (id: string): SitOutReason | null =>
     birthday === id
       ? sitOutReasons.birthday
@@ -240,20 +236,7 @@ export function BillSheet({
     }
 
     sound.tap();
-    setCoffeeIds((current) => current.filter((kept) => kept !== id));
     setBathroomIds((current) =>
-      current.includes(id) ? current.filter((kept) => kept !== id) : [...current, id],
-    );
-  };
-
-  const toggleCoffee = (id: string) => {
-    if (!coffee.includes(id) && coffee.length >= deckLimits.coffee) {
-      return;
-    }
-
-    sound.tap();
-    setBathroomIds((current) => current.filter((kept) => kept !== id));
-    setCoffeeIds((current) =>
       current.includes(id) ? current.filter((kept) => kept !== id) : [...current, id],
     );
   };
@@ -291,7 +274,6 @@ export function BillSheet({
     setBirthdayId(id);
     setCake(true);
     setBathroomIds((current) => current.filter((kept) => kept !== id));
-    setCoffeeIds((current) => current.filter((kept) => kept !== id));
     setBirthdayBurst((current) => current + 1);
   };
 
@@ -316,7 +298,7 @@ export function BillSheet({
       return;
     }
 
-    if (checklist.full && checklist.step < 2) {
+    if (checklist.full && checklist.step < sitOutStepCount - 1) {
       setChecklist({ step: checklist.step + 1, full: true });
 
       return;
@@ -344,7 +326,6 @@ export function BillSheet({
     payerId,
     split,
     bathroomIds: bathroom,
-    coffeeIds: coffee,
     birthdayId: birthday,
     ...cards,
   };
@@ -359,11 +340,9 @@ export function BillSheet({
           full={checklist.full}
           people={others}
           bathroom={bathroom}
-          coffee={coffee}
           birthdayId={birthday}
           total={breakdown.total}
           onToggleBathroom={toggleBathroom}
-          onToggleCoffee={toggleCoffee}
           onPickBirthday={pickBirthday}
           onNoBirthday={dropCake}
           onNext={advanceChecklist}
@@ -442,12 +421,6 @@ export function BillSheet({
                 <li>
                   <strong className="text-ink">🎂 Aniversário:</strong>{" "}
                   {birthdayPerson ? `${birthdayPerson.name} não paga nem racha` : "ninguém"}
-                </li>
-                <li>
-                  <strong className="text-ink">☕ Café:</strong>{" "}
-                  {coffeePayers.length > 0
-                    ? `${nameList(players, coffeePayers)} paga igual a todo mundo`
-                    : "ninguém"}
                 </li>
               </ul>
               <ul className="flex flex-col gap-1 rounded-2xl bg-cream px-3 py-2 text-xs">
@@ -787,7 +760,7 @@ export function BillSheet({
                       <>
                         <span className="display block text-lg leading-tight text-ink">Todo mundo paga</span>
                         <span className="block text-xs font-semibold text-ink/60">
-                          Alguém está no banheiro ou pediu café? Toque para marcar.
+                          Alguém está no banheiro ou faz aniversário? Toque para marcar.
                         </span>
                       </>
                     ) : (
@@ -800,7 +773,7 @@ export function BillSheet({
                             ))}
                         </span>
                         <span className="block text-[0.7rem] font-semibold text-ink/55">
-                          Banheiro e aniversariante não pagam nem racham. Quem pediu café paga normal.
+                          Só banheiro e aniversariante ficam fora da conta. O resto da mesa racha.
                         </span>
                       </>
                     )}
@@ -1063,11 +1036,9 @@ function SitOutChecklist({
   full,
   people,
   bathroom,
-  coffee,
   birthdayId,
   total,
   onToggleBathroom,
-  onToggleCoffee,
   onPickBirthday,
   onNoBirthday,
   onNext,
@@ -1077,25 +1048,15 @@ function SitOutChecklist({
   full: boolean;
   people: PlayerView[];
   bathroom: string[];
-  coffee: string[];
   birthdayId: string | null;
   total: number;
   onToggleBathroom: (id: string) => void;
-  onToggleCoffee: (id: string) => void;
   onPickBirthday: (id: string) => void;
   onNoBirthday: () => void;
   onNext: () => void;
   onBack: () => void;
 }) {
   const steps = [
-    {
-      icon: sitOutReasons.coffee.icon,
-      title: "Alguém pediu café?",
-      hint: "Quem pede café paga a conta igual a todo mundo",
-      note: "Toque em quem pediu o cafezinho. Isso não tira ninguém do rateio. Se ninguém pediu, é só seguir.",
-      chosen: coffee,
-      onTap: onToggleCoffee,
-    },
     {
       icon: sitOutReasons.bathroom.icon,
       title: "Alguém está no banheiro?",
@@ -1115,7 +1076,7 @@ function SitOutChecklist({
   ];
 
   const current = steps[Math.min(step, steps.length - 1)];
-  const birthdayStep = step === 2;
+  const birthdayStep = step === sitOutStepCount - 1;
 
   return (
     <div className="fixed inset-0 z-[58] flex items-end justify-center bg-ink/75 p-3 sm:items-center sm:p-4">

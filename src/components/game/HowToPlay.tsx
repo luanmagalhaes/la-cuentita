@@ -122,8 +122,8 @@ const slides: Slide[] = [
           de aniversário. Sobrou centavo, fica com quem pediu.
         </p>
         <p>
-          <strong className="text-ink">☕ Café:</strong> quem pediu café paga a conta igual a todo mundo. Só banheiro
-          e aniversariante ficam de fora.
+          <strong className="text-ink">☕ Café:</strong> a carta do café trava a mesa, mas não mexe no rateio. Quem
+          pediu café paga igual a todo mundo, por isso o app nem pergunta.
         </p>
         <p className="text-xs text-ink/60">
           Errou? A última conta pode ser corrigida ou desfeita por quem lançou, por quem pagou ou pelo dono da sala.

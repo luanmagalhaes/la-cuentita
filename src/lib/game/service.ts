@@ -327,7 +327,6 @@ async function writeBill(input: { code: string; token: string; body: unknown; re
     tips: draft.tips,
     split: draft.split,
     bathroomIds: draft.bathroomIds,
-    coffeeIds: draft.coffeeIds,
     birthdayId: draft.birthdayId,
     breakdown,
   };

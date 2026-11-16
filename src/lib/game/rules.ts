@@ -16,7 +16,6 @@ export const deckLimits = {
   cake: 1,
   tips: 6,
   bathroom: 5,
-  coffee: 10,
 } as const;
 
 export function startingSavingsFor(playerCount: number): number {

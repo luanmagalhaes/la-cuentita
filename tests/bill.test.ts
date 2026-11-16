@@ -136,13 +136,11 @@ describe("divisão da conta", () => {
   });
 
   it("fora da conta ficam só banheiro e aniversariante", () => {
-    expect(
-      sitOutIds({ bathroomIds: ["b"], coffeeIds: ["c"], birthdayId: "d" }).sort(),
-    ).toEqual(["b", "d"]);
+    expect(sitOutIds({ bathroomIds: ["b"], birthdayId: "d" }).sort()).toEqual(["b", "d"]);
   });
 
-  it("quem pediu café racha igual a todo mundo", () => {
-    const out = sitOutIds({ bathroomIds: [], coffeeIds: ["c"], birthdayId: null });
+  it("sem banheiro nem aniversário, a mesa inteira racha", () => {
+    const out = sitOutIds({ bathroomIds: [], birthdayId: null });
     const shares = splitBill({
       total: 120,
       split: { mode: SplitMode.Dutch, excludedIds: out },
@@ -150,7 +148,6 @@ describe("divisão da conta", () => {
       playerIds: people,
     });
 
-    expect(shares.map((share) => share.playerId)).toContain("c");
     expect(shares).toHaveLength(4);
   });
 
