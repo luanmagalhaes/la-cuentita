@@ -43,7 +43,6 @@ export function sitOutIds(sitOuts: SitOuts): string[] {
   return [
     ...new Set([
       ...sitOuts.bathroomIds,
-      ...sitOuts.coffeeIds,
       ...(sitOuts.birthdayId ? [sitOuts.birthdayId] : []),
     ]),
   ];
@@ -211,10 +210,6 @@ function readSitOuts(input: Record<string, unknown>, payerId: string, playerIds:
   }
 
   const coffeeIds = [...new Set(rawCoffee.map((id) => String(id)))].filter((id) => playerIds.includes(id));
-
-  if (coffeeIds.includes(payerId)) {
-    return "Quem foi tomar café não pode pedir a conta";
-  }
 
   if (coffeeIds.length > deckLimits.coffee) {
     return `O baralho só tem ${deckLimits.coffee} cartas de café`;

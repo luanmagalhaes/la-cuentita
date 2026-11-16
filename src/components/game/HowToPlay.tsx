@@ -121,6 +121,10 @@ const slides: Slide[] = [
           <strong className="text-ink">Cada um paga:</strong> divide entre todos, tirando quem está no banheiro ou
           de aniversário. Sobrou centavo, fica com quem pediu.
         </p>
+        <p>
+          <strong className="text-ink">☕ Café:</strong> quem pediu café paga a conta igual a todo mundo. Só banheiro
+          e aniversariante ficam de fora.
+        </p>
         <p className="text-xs text-ink/60">
           Errou? A última conta pode ser corrigida ou desfeita por quem lançou, por quem pagou ou pelo dono da sala.
         </p>

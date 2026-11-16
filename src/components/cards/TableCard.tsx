@@ -42,18 +42,34 @@ const sizes: Record<CardSize, { card: string; corner: string; title: string; art
   sm: {
     card: "h-[6rem] w-[4.2rem]",
     corner: "text-[0.8rem] px-1.5 pb-0.5 pt-0.5 rounded-br-[14px]",
-    title: "text-[0.5rem]",
+    title: "text-[clamp(0.38rem,1.9vw,0.5rem)]",
     art: "text-[1.35rem]",
     plate: "h-10 w-10",
   },
   md: {
     card: "h-[7.4rem] w-[5.3rem]",
     corner: "text-base px-2 pb-1 pt-0.5 rounded-br-[18px]",
-    title: "text-[0.55rem]",
+    title: "text-[clamp(0.42rem,2.1vw,0.55rem)]",
     art: "text-[2rem]",
     plate: "h-14 w-14",
   },
 };
+
+function titleFit(title: string): string {
+  const longest = title
+    .split(/\s+/)
+    .reduce((biggest, word) => Math.max(biggest, word.length), 0);
+
+  if (longest >= 11 || title.length >= 20) {
+    return "tracking-tight";
+  }
+
+  if (longest >= 8 || title.length >= 14) {
+    return "tracking-normal";
+  }
+
+  return "tracking-wide";
+}
 
 export function TableCard({
   tone,
@@ -82,7 +98,7 @@ export function TableCard({
       >
         {corner}
       </span>
-      <span className="flex flex-1 items-center justify-center pt-4">
+      <span className="flex min-h-0 flex-1 items-center justify-center pt-4">
         <span
           className={`flex items-center justify-center rounded-full ${scale.plate} ${
             chalk
@@ -94,7 +110,8 @@ export function TableCard({
         </span>
       </span>
       <span
-        className={`z-10 line-clamp-2 min-h-[2.1em] px-1 pb-1 text-center font-bold uppercase leading-[1.05] tracking-wide ${scale.title}`}
+        className={`z-10 line-clamp-3 min-h-[2.1em] hyphens-auto break-words px-0.5 pb-1 text-center font-bold uppercase leading-[1.05] ${titleFit(title)} ${scale.title}`}
+        lang="es"
       >
         {title}
       </span>

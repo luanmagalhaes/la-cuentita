@@ -40,9 +40,27 @@ const splitOptions: Array<{ mode: SplitMode; label: string; hint: string }> = [
   { mode: SplitMode.Dutch, label: "Cada um paga", hint: "Racha geral" },
 ];
 
+const splitShort: Record<SplitMode, string> = {
+  SOLO: "sozinho",
+  HALF: "meio a meio",
+  DUTCH: "rachado",
+};
+
+function nameList(people: readonly PlayerView[], ids: readonly string[]): string {
+  const names = ids
+    .map((id) => people.find((person) => person.id === id)?.name)
+    .filter((name): name is string => Boolean(name));
+
+  if (names.length <= 1) {
+    return names[0] ?? "ninguém";
+  }
+
+  return `${names.slice(0, -1).join(", ")} e ${names[names.length - 1]}`;
+}
+
 const sitOutReasons = {
   bathroom: { icon: "🚽", label: "No banheiro" },
-  coffee: { icon: "☕", label: "Tomando café" },
+  coffee: { icon: "☕", label: "Pediu café" },
   birthday: { icon: "🎂", label: "Aniversário" },
 } as const;
 
@@ -90,6 +108,7 @@ export function BillSheet({
   const [birthdayId, setBirthdayId] = useState<string | null>(initial?.birthdayId ?? null);
   const [picking, setPicking] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [resumeConfirm, setResumeConfirm] = useState(false);
   const [checklist, setChecklist] = useState<null | { step: number; full: boolean }>(null);
   const [birthdayBurst, setBirthdayBurst] = useState(0);
 
@@ -104,14 +123,13 @@ export function BillSheet({
   );
   const birthday = cake && others.some((person) => person.id === birthdayId) ? birthdayId : null;
   const outIds = sitOutIds({ bathroomIds: bathroom, coffeeIds: coffee, birthdayId: birthday });
+  const coffeePayers = coffee.filter((id) => !outIds.includes(id));
   const reasonFor = (id: string): SitOutReason | null =>
     birthday === id
       ? sitOutReasons.birthday
       : bathroom.includes(id)
         ? sitOutReasons.bathroom
-        : coffee.includes(id)
-          ? sitOutReasons.coffee
-          : null;
+        : null;
   const partner = others.find((person) => person.id === partnerId && !outIds.includes(person.id)) ?? null;
   const birthdayPerson = others.find((person) => person.id === birthday) ?? null;
   const split: BillSplit =
@@ -245,6 +263,27 @@ export function BillSheet({
     setPartnerId(id);
     setMode(SplitMode.Half);
     setPicking(false);
+
+    if (resumeConfirm) {
+      setResumeConfirm(false);
+      setConfirming(true);
+    }
+  };
+
+  const openPartnerFromConfirm = () => {
+    sound.tap();
+    setConfirming(false);
+    setResumeConfirm(true);
+    setPicking(true);
+  };
+
+  const closePartnerPicker = () => {
+    setPicking(false);
+
+    if (resumeConfirm) {
+      setResumeConfirm(false);
+      setConfirming(true);
+    }
   };
 
   const pickBirthday = (id: string) => {
@@ -338,14 +377,14 @@ export function BillSheet({
           partnerId={partner?.id ?? null}
           reasonFor={reasonFor}
           onPick={pickPartner}
-          onCancel={() => setPicking(false)}
+          onCancel={closePartnerPicker}
         />
       ) : null}
 
       {confirming ? (
         <ConfirmModal
           title={`Fechar a conta do bar ${roundNumber}?`}
-          confirmLabel={`Isso, ${euros(breakdown.total)}`}
+          confirmLabel={`Isso, ${euros(breakdown.total)} ${splitShort[mode]}`}
           cancelLabel="Deixa eu conferir"
           busy={busy}
           body={
@@ -354,6 +393,63 @@ export function BillSheet({
                 Conta de <strong className="text-ink">{euros(breakdown.total)}</strong>
                 {breakdown.raw < 0 ? " (os queimados zeraram a conta)" : ""}.
               </p>
+
+              <div className="rounded-2xl border-2 border-ink bg-paper p-2">
+                <span className="display block px-1 text-[0.65rem] uppercase tracking-[0.14em] text-ink/60">
+                  Como vai pagar
+                </span>
+                <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+                  {splitOptions.map((option) => (
+                    <button
+                      key={option.mode}
+                      type="button"
+                      onClick={() => {
+                        if (option.mode === SplitMode.Half) {
+                          openPartnerFromConfirm();
+                          return;
+                        }
+
+                        sound.tap();
+                        setMode(option.mode);
+                      }}
+                      aria-pressed={mode === option.mode}
+                      className={`display rounded-xl border-2 border-ink px-1 py-1.5 text-[0.7rem] leading-tight ${
+                        mode === option.mode
+                          ? "bg-ink text-paper shadow-[0_2px_0_var(--color-flame)]"
+                          : "bg-paper text-ink"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1.5 px-1 text-[0.7rem] font-semibold text-ink/75">
+                  {mode === SplitMode.Solo
+                    ? `${payer?.name ?? "Quem pediu"} paga tudo sozinho`
+                    : mode === SplitMode.Half
+                      ? `Meio a meio entre ${payer?.name ?? "quem pediu"} e ${partner?.name ?? "ninguém ainda"}`
+                      : `Rachado entre ${shares.length} ${shares.length === 1 ? "pessoa" : "pessoas"}`}
+                </p>
+              </div>
+
+              <ul className="flex flex-col gap-1 rounded-2xl border-2 border-dashed border-ink/25 px-3 py-2 text-xs">
+                <li>
+                  <strong className="text-ink">🚽 Banheiro:</strong>{" "}
+                  {bathroom.length > 0
+                    ? `${nameList(players, bathroom)} não paga nem racha`
+                    : "ninguém"}
+                </li>
+                <li>
+                  <strong className="text-ink">🎂 Aniversário:</strong>{" "}
+                  {birthdayPerson ? `${birthdayPerson.name} não paga nem racha` : "ninguém"}
+                </li>
+                <li>
+                  <strong className="text-ink">☕ Café:</strong>{" "}
+                  {coffeePayers.length > 0
+                    ? `${nameList(players, coffeePayers)} paga igual a todo mundo`
+                    : "ninguém"}
+                </li>
+              </ul>
               <ul className="flex flex-col gap-1 rounded-2xl bg-cream px-3 py-2 text-xs">
                 {[
                   ...shares,
@@ -378,6 +474,10 @@ export function BillSheet({
                   );
                 })}
               </ul>
+              <p className="rounded-2xl border-2 border-ink bg-gold/35 px-3 py-2 text-xs font-semibold text-ink">
+                Leia em voz alta para a mesa antes de fechar. Depois, só quem lançou, quem pagou ou
+                quem abriu a sala pode corrigir.
+              </p>
               {initial ? (
                 <p className="text-xs text-ink/60">Isso entra no lugar da conta que estava lançada.</p>
               ) : null}
@@ -687,7 +787,7 @@ export function BillSheet({
                       <>
                         <span className="display block text-lg leading-tight text-ink">Todo mundo paga</span>
                         <span className="block text-xs font-semibold text-ink/60">
-                          Alguém foi ao banheiro ou tomar café? Toque para marcar.
+                          Alguém está no banheiro ou pediu café? Toque para marcar.
                         </span>
                       </>
                     ) : (
@@ -700,7 +800,7 @@ export function BillSheet({
                             ))}
                         </span>
                         <span className="block text-[0.7rem] font-semibold text-ink/55">
-                          Quem está no banheiro, no café ou de aniversário não paga nem racha a conta.
+                          Banheiro e aniversariante não pagam nem racham. Quem pediu café paga normal.
                         </span>
                       </>
                     )}
@@ -990,9 +1090,9 @@ function SitOutChecklist({
   const steps = [
     {
       icon: sitOutReasons.coffee.icon,
-      title: "Alguém foi tomar um café?",
-      hint: "Quem está no café não paga nem racha esta conta",
-      note: "Toque em quem saiu da mesa para o cafezinho. Se ninguém saiu, é só seguir.",
+      title: "Alguém pediu café?",
+      hint: "Quem pede café paga a conta igual a todo mundo",
+      note: "Toque em quem pediu o cafezinho. Isso não tira ninguém do rateio. Se ninguém pediu, é só seguir.",
       chosen: coffee,
       onTap: onToggleCoffee,
     },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkBillDraft, computeBill, emptyCards, splitBill } from "@/lib/game/bill";
+import { checkBillDraft, computeBill, emptyCards, sitOutIds, splitBill } from "@/lib/game/bill";
 import { SplitMode, TapaKind, type BillCards } from "@/types/room";
 
 function cards(overrides: Partial<BillCards>): BillCards {
@@ -133,6 +133,25 @@ describe("divisão da conta", () => {
       { playerId: "b", amount: 83 },
       { playerId: "c", amount: 83 },
     ]);
+  });
+
+  it("fora da conta ficam só banheiro e aniversariante", () => {
+    expect(
+      sitOutIds({ bathroomIds: ["b"], coffeeIds: ["c"], birthdayId: "d" }).sort(),
+    ).toEqual(["b", "d"]);
+  });
+
+  it("quem pediu café racha igual a todo mundo", () => {
+    const out = sitOutIds({ bathroomIds: [], coffeeIds: ["c"], birthdayId: null });
+    const shares = splitBill({
+      total: 120,
+      split: { mode: SplitMode.Dutch, excludedIds: out },
+      payerId: "eu",
+      playerIds: people,
+    });
+
+    expect(shares.map((share) => share.playerId)).toContain("c");
+    expect(shares).toHaveLength(4);
   });
 
   it("a soma das partes sempre fecha com o total", () => {
