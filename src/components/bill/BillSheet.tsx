@@ -40,12 +40,6 @@ const splitOptions: Array<{ mode: SplitMode; label: string; hint: string }> = [
   { mode: SplitMode.Dutch, label: "Cada um paga", hint: "Racha geral" },
 ];
 
-const splitShort: Record<SplitMode, string> = {
-  SOLO: "sozinho",
-  HALF: "meio a meio",
-  DUTCH: "rachado",
-};
-
 function nameList(people: readonly PlayerView[], ids: readonly string[]): string {
   const names = ids
     .map((id) => people.find((person) => person.id === id)?.name)
@@ -363,7 +357,7 @@ export function BillSheet({
       {confirming ? (
         <ConfirmModal
           title={`Fechar a conta do bar ${roundNumber}?`}
-          confirmLabel={`Isso, ${euros(breakdown.total)} ${splitShort[mode]}`}
+          confirmLabel={`Isso, ${euros(breakdown.total)}`}
           cancelLabel="Deixa eu conferir"
           busy={busy}
           body={
