@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MyPhoto } from "@/components/game/MyPhoto";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Screen } from "@/components/ui/Screen";
@@ -23,6 +24,7 @@ interface TableScreenProps {
   onFixBill: (bill: BillView) => void;
   onUndoBill: (bill: BillView) => void;
   onRemovePlayer: (playerId: string) => void;
+  onPhoto: (photo: Blob) => void;
   onRules: () => void;
   onLeave: () => void;
 }
@@ -47,6 +49,7 @@ export function TableScreen({
   onFixBill,
   onUndoBill,
   onRemovePlayer,
+  onPhoto,
   onRules,
   onLeave,
 }: TableScreenProps) {
@@ -59,6 +62,7 @@ export function TableScreen({
   const canTouchLatest =
     latest !== null && meId !== null && [latest.created_by, latest.payer_id, room.host_player_id].includes(meId);
   const pendingRemoval = players.find((person) => person.id === confirmingRemoval) ?? null;
+  const me = players.find((person) => person.id === meId) ?? null;
   const nameOf = (id: string | null) => {
     if (!id) {
       return "Alguém que saiu";
@@ -156,6 +160,16 @@ export function TableScreen({
           ← Sair
         </button>
         <div className="flex items-center gap-2">
+          {me ? (
+            <MyPhoto
+              name={me.name}
+              photo={me.avatar}
+              emoji={me.emoji}
+              size="sm"
+              busy={busy}
+              onPhoto={onPhoto}
+            />
+          ) : null}
           <button
             type="button"
             onClick={() => onQuiet(!quiet)}

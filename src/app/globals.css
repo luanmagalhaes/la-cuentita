@@ -113,6 +113,12 @@ button:disabled {
   backface-visibility: hidden;
 }
 
+@utility veil-blur {
+  background: color-mix(in srgb, var(--color-ink) 78%, transparent);
+  -webkit-backdrop-filter: blur(10px) saturate(118%);
+  backdrop-filter: blur(10px) saturate(118%);
+}
+
 @keyframes card-pop {
   0% { transform: scale(0.85) rotate(-3deg); opacity: 0; }
   60% { transform: scale(1.04) rotate(1deg); opacity: 1; }
@@ -142,6 +148,16 @@ button:disabled {
   100% { transform: scale(1.35); opacity: 0; }
 }
 
+@keyframes veil-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes photo-pop {
+  from { transform: translate3d(0, 14px, 0) scale(0.92); opacity: 0; }
+  to { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+}
+
 @utility animate-card-pop {
   animation: card-pop 420ms var(--ease-swing) both;
   will-change: transform, opacity;
@@ -165,6 +181,23 @@ button:disabled {
 @utility animate-halo-pulse {
   animation: halo-pulse 2200ms ease-out infinite;
   will-change: transform, opacity;
+}
+
+@utility animate-veil-in {
+  animation: veil-in 200ms ease-out both;
+  will-change: opacity;
+}
+
+@utility animate-photo-pop {
+  animation: photo-pop 320ms var(--ease-snap) both;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-veil-in,
+  .animate-photo-pop {
+    animation: none;
+  }
 }
 
 @keyframes card-spin-in {

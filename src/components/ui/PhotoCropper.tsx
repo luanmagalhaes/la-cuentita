@@ -126,7 +126,7 @@ export function PhotoCropper({ file, busy = false, onCancel, onDone }: PhotoCrop
   };
 
   return (
-    <div className="fixed inset-0 z-[62] flex items-end justify-center bg-ink/80 p-3 sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-[66] flex items-end justify-center bg-ink/80 p-3 sm:items-center sm:p-4">
       <div className="animate-card-pop flex max-h-[calc(100dvh-1.5rem)] w-full max-w-sm flex-col overflow-hidden rounded-[1.75rem] border-4 border-ink bg-paper shadow-[0_14px_0_var(--color-ink)]">
         <div className="shrink-0 stage-orange border-b-4 border-ink px-5 py-3">
           <span className="display block text-xl leading-tight text-ink">Ajeite a sua foto</span>

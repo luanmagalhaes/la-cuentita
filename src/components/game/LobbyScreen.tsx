@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { MyPhoto } from "@/components/game/MyPhoto";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { PhotoCropper } from "@/components/ui/PhotoCropper";
 import { Screen } from "@/components/ui/Screen";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { ZoomablePhoto } from "@/components/ui/ZoomablePhoto";
@@ -43,9 +43,6 @@ export function LobbyScreen({
   const [confirmingStart, setConfirmingStart] = useState(false);
   const [confirmingRemoval, setConfirmingRemoval] = useState<string | null>(null);
   const pendingRemoval = players.find((person) => person.id === confirmingRemoval) ?? null;
-  const [photoTrouble, setPhotoTrouble] = useState<string | null>(null);
-  const [cropping, setCropping] = useState<File | null>(null);
-  const picker = useRef<HTMLInputElement>(null);
   const enough = players.length >= minPlayers;
   const me = players.find((person) => person.id === meId) ?? null;
   const hostName = players.find((person) => person.id === room.host_player_id)?.name ?? null;
@@ -58,15 +55,6 @@ export function LobbyScreen({
     } catch {
       setCopied(false);
     }
-  };
-
-  const pickPhoto = (file: File | undefined) => {
-    if (!file) {
-      return;
-    }
-
-    setPhotoTrouble(null);
-    setCropping(file);
   };
 
   return (
@@ -94,18 +82,6 @@ export function LobbyScreen({
         )
       }
     >
-      {cropping ? (
-        <PhotoCropper
-          file={cropping}
-          busy={busy}
-          onCancel={() => setCropping(null)}
-          onDone={(photo) => {
-            setCropping(null);
-            onPhoto(photo);
-          }}
-        />
-      ) : null}
-
       {confirmingStart ? (
         <ConfirmModal
           title="Começar a partida?"
@@ -198,7 +174,15 @@ export function LobbyScreen({
                   Escolha um emoji ou mande uma foto
                 </p>
               </div>
-              <ZoomablePhoto name={me?.name ?? "?"} photo={me?.avatar ?? null} emoji={me?.emoji ?? null} size="lg" />
+              <MyPhoto
+                name={me?.name ?? "?"}
+                photo={me?.avatar ?? null}
+                emoji={me?.emoji ?? null}
+                size="lg"
+                busy={busy}
+                action
+                onPhoto={onPhoto}
+              />
             </div>
 
             <div className="grid grid-cols-8 gap-1.5">
@@ -217,27 +201,6 @@ export function LobbyScreen({
                 </button>
               ))}
             </div>
-
-            <input
-              ref={picker}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(event) => {
-                pickPhoto(event.target.files?.[0]);
-                event.target.value = "";
-              }}
-            />
-
-            <div className="mt-3">
-              <Button variant="paper" fullWidth disabled={busy} onClick={() => picker.current?.click()}>
-                Usar uma foto
-              </Button>
-            </div>
-
-            {photoTrouble ? (
-              <p className="mt-2 text-xs font-semibold text-flame">{photoTrouble}</p>
-            ) : null}
           </section>
         </div>
 

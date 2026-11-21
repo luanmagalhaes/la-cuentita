@@ -272,6 +272,11 @@ export function CuentitaApp() {
       await api.undoBill(session.code, session.accessToken, bill.id);
       await refresh();
     });
+  const sendPhoto = (photo: Blob) =>
+    run(async () => {
+      await api.sendAvatar(session.code, session.accessToken, photo);
+      await refresh();
+    });
 
   if (!me && state.room.phase !== RoomPhase.Finished) {
     return (
@@ -372,12 +377,7 @@ export function CuentitaApp() {
               await refresh();
             })
           }
-          onPhoto={(blob) =>
-            run(async () => {
-              await api.sendAvatar(session.code, session.accessToken, blob);
-              await refresh();
-            })
-          }
+          onPhoto={sendPhoto}
         />
       </>
     );
@@ -430,6 +430,7 @@ export function CuentitaApp() {
         onFixBill={(bill) => setSheet({ roundNumber: bill.round_number, bill })}
         onUndoBill={undoBill}
         onRemovePlayer={removePlayer}
+        onPhoto={sendPhoto}
         onRules={() => setAskedRules(true)}
         onLeave={leave}
       />
